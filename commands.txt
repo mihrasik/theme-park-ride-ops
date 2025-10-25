@@ -1,0 +1,15 @@
+# run vagrant that creates docker container from Dockerfile
+vagrant up --provider=docker
+
+# get insecure key
+curl -o insecure_key.pub https://raw.githubusercontent.com/hashicorp/vagrant/main/keys/vagrant.pub
+
+# deleted old fingerpint
+ssh-keygen -f '/home/ubuntu/.ssh/known_hosts' -R '[localhost]:2222'
+
+ssh -i ~/.vagrant.d/insecure_private_key -p 2222 vagrant@localhost
+
+ ll  ~/.vagrant.d/insecure_private_key
+-rw------- 1 ubuntu ubuntu 1675 Oct 23 16:03 /home/ubuntu/.vagrant.d/insecure_private_key
+
+ curl localhost:5000/ride
