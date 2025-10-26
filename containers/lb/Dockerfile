@@ -39,6 +39,8 @@ RUN mkdir -p /etc/supervisor/conf.d
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 
 COPY index.html /var/www/html/index.html
+# Copy nginx configuration file
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Create directories and set permissions (if needed)
 RUN mkdir -p /var/run/sshd && \
