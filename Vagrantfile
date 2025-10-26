@@ -1,35 +1,40 @@
 ENV['VAGRANT_DEFAULT_PROVIDER'] = 'docker' # We define the provider to use which is Docker, Start of instruction 1
+app_nodes = 3
+cidr_prefix = "192.168.10"
+
 Vagrant.configure("2") do |config|
-  config.vm.define "app1" do |app1|
-    app1.vm.hostname = "app1"
-    app1.vm.provider "docker" do |d|
-      d.name = "openjdk12-ssh"
+  (1..app_nodes).each do |i|
+  config.vm.define "app#{i}" do |app|
+    app.vm.hostname = "app#{i}"
+    app.vm.provider "docker" do |d|
+      d.name = "app#{i}"
       # d.build_dir = "./containers/app"
       d.remains_running = true
       
       d.build_dir = "."  # <--- Build from project root!
       d.dockerfile = "containers/app/Dockerfile"  # <--- Specify Dockerfile location
 
-      # d.build_args = ["-t", "theme-park-ride-app"]
+      d.build_args = ["-t", "app"]  # <--- Tag the image with a unique name
       d.remains_running = true
       
       d.has_ssh = true
       d.cmd = ["/usr/sbin/sshd", "-D"]
-      d.ports = ["5000:5000", "2201:22", "8080:8080"]
+      d.ports = ["#{5001 + i}:5000", "#{2201 + i}:22", "#{8081 + i}:8080"]
     end
 
     # SSH setup to use vagrant's insecure key
-    app1.ssh.username = "vagrant"
-    app1.ssh.private_key_path = File.expand_path("~/.vagrant.d/insecure_private_key")
-    app1.ssh.insert_key = false
-    app1.vm.network "private_network", ip: "192.168.10.10", netmask: 24
-    app1.vm.network "forwarded_port", guest: 5000, host: 5001
+    app.ssh.username = "vagrant"
+    app.ssh.private_key_path = File.expand_path("~/.vagrant.d/insecure_private_key")
+    app.ssh.insert_key = false
+    app.vm.network "private_network", ip: "#{cidr_prefix}.#{10 + i}", netmask: 24
+    app.vm.network "forwarded_port", guest: 5000, host: "#{5001 + i}"
+  end
   end
   config.vm.define "db" do |db|
     db.vm.provider "docker" do |d|
       d.build_dir = "./containers/db"
       d.name = "mariadb"
-      d.ports = ["3306:3306", "2202:22"]
+      d.ports = ["3306:3306", "2242:22"]
       d.env = {
         "MARIADB_ROOT_PASSWORD" => "root",
         "MARIADB_USER" => "app",
