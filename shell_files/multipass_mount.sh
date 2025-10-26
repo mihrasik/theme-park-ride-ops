@@ -7,3 +7,5 @@ multipass shell park-project
 
 multipass stop park-project
 multipass start park-project
+
+sudo apt install net-tools
