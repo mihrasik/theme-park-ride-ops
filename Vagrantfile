@@ -20,21 +20,21 @@ Vagrant.configure("2") do |config|
   end
   config.vm.define "db" do |db|
     db.vm.provider "docker" do |d|
-        # d.image = "mariadb:latest"
-        d.build_dir = "./containers/db"
-        d.name = "mariadb"
-        d.ports = ["3306:3306", "2202:22"]
-        d.env = {
-            MYSQL_ROOT_PASSWORD: "root",
-            MYSQL_USER: "root",
-            MYSQL_PASS: "root"
-        }
+      d.build_dir = "./containers/db"
+      d.name = "mariadb"
+      d.ports = ["3306:3306", "2202:22"]
+      d.env = {
+        "MARIADB_ROOT_PASSWORD" => "root",
+        "MARIADB_USER" => "app",
+        "MARIADB_PASSWORD" => "app"
+      }
+      d.remains_running = true
     end
-    # SSH setup to use vagrant's insecure key
+
     db.ssh.username = "vagrant"
     db.ssh.private_key_path = File.expand_path("~/.vagrant.d/insecure_private_key")
     db.ssh.insert_key = false
-    db.vm.network "private_network", ip: "192.168.10.22", netmask: 24
+    db.vm.network "private_network", ip: "192.168.10.22"
   end
 
 end

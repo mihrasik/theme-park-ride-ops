@@ -1,7 +1,20 @@
-#!/bin/sh
-# Start SSH daemon in the background
+#!/bin/bash
+set -e
+
+# Start SSH in background
+echo "Starting SSH daemon..."
 /usr/sbin/sshd -D &
-# Wait a moment for sshd to bind to the port
-sleep 5
-# Execute the original MariaDB entrypoint with mysqld
-exec gosu mysql mariadbd
+SSHD_PID=$!
+
+# === Let the OFFICIAL entrypoint do ALL initialization ===
+echo "Initializing MariaDB (official entrypoint)..."
+/usr/local/bin/docker-entrypoint.sh mariadbd &
+INIT_PID=$!
+
+# Wait for the official entrypoint to finish (it exits when done)
+echo "Waiting for MariaDB initialization to complete..."
+wait $INIT_PID
+
+# === Now start the real server ===
+echo "Starting final MariaDB server..."
+exec gosu mysql mariadbd "$@"
