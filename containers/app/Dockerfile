@@ -24,7 +24,7 @@ HEALTHCHECK --interval=5m --timeout=3s --retries=3 \
 # ------------------------------------------------------------------
 #  8. Entrypoint – starts sshd in the background and then runs the app
 # ------------------------------------------------------------------
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY containers/app/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 
@@ -38,7 +38,7 @@ RUN adduser -D vagrant && echo "vagrant:vagrant" | chpasswd && \
 
 # Add the default vagrant insecure key
 # (We'll copy it in from the build context)
-COPY insecure_key.pub /home/vagrant/.ssh/authorized_keys
+COPY containers/app/insecure_key.pub /home/vagrant/.ssh/authorized_keys
 RUN chmod 600 /home/vagrant/.ssh/authorized_keys && chown -R vagrant:vagrant /home/vagrant/.ssh
 
 # ------------------------------------------------------------------

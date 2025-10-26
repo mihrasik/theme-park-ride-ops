@@ -4,7 +4,13 @@ Vagrant.configure("2") do |config|
     app1.vm.hostname = "app1"
     app1.vm.provider "docker" do |d|
       d.name = "openjdk12-ssh"
-      d.build_dir = "."
+      # d.build_dir = "./containers/app"
+      d.remains_running = true
+      
+      d.build_dir = "."  # <--- Build from project root!
+      d.dockerfile = "containers/app/Dockerfile"  # <--- Specify Dockerfile location
+
+      # d.build_args = ["-t", "theme-park-ride-app"]
       d.remains_running = true
       
       d.has_ssh = true
