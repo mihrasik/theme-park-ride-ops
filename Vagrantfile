@@ -5,7 +5,7 @@ Vagrant.configure("2") do |config|
     d.remains_running = true
     d.has_ssh = true
     d.cmd = ["/usr/sbin/sshd", "-D"]
-    d.ports = ["5000:5000", "2222:22", "8080:8080"]
+    d.ports = ["5001:5000", "2222:22", "8080:8080"]
   end
 
   # SSH setup to use vagrant's insecure key

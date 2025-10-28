@@ -1,3 +1,4 @@
 install_docker_io.sh
 install_vagrant.sh
 install_vagrant_plugin_docker.sh
+install curl

@@ -1,5 +1,8 @@
-# Use official openjdk 12 alpine image
-FROM openjdk:12-alpine
+# Use Amazon Corretto JDK image with ARM64 support
+FROM amazoncorretto:11-alpine
+
+# Enable non-free packages for OpenSSH
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 
 # Install openssh server and bash
 RUN apk update && apk add --no-cache openssh bash sudo 
