@@ -33,6 +33,8 @@ Vagrant.configure("2") do |config|
     app.ssh.username = "vagrant"
     app.ssh.private_key_path = File.expand_path("~/.vagrant.d/insecure_private_key")
     app.ssh.insert_key = false
+  # Pin unique SSH host port per app to avoid 127.0.0.1:2200 conflicts
+  app.ssh.port = 2201 + i
     app.vm.network "private_network", ip: "#{cidr_prefix}.#{10 + i}", netmask: 24
     app.vm.network "forwarded_port", guest: 5000, host: "#{5001 + i}"
   end
