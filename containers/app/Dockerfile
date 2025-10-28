@@ -5,7 +5,7 @@ FROM amazoncorretto:11-alpine
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 
 # Install openssh server and bash
-RUN apk update && apk add --no-cache openssh bash sudo 
+RUN apk update && apk add --no-cache openssh bash sudo curl
 
 
 # ------------------------------------------------------------------
@@ -22,7 +22,7 @@ EXPOSE 22 8080
 #  7. Health‑check (optional – adjust the URL to your actuator)
 # ------------------------------------------------------------------
 HEALTHCHECK --interval=5m --timeout=3s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
+  CMD curl -f http://localhost:5000/actuator/health || exit 1
 
 # ------------------------------------------------------------------
 #  8. Entrypoint – starts sshd in the background and then runs the app

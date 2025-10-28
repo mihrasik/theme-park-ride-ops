@@ -20,6 +20,13 @@ Vagrant.configure("2") do |config|
       d.has_ssh = true
       d.cmd = ["/usr/sbin/sshd", "-D"]
       d.ports = ["#{5001 + i}:5000", "#{2201 + i}:22", "#{8081 + i}:8080"]
+      d.env = {
+        "DB_HOST" => "mariadb",
+        "DB_PORT" => "3306",
+        "DB_NAME" => "themepark",
+        "DB_USER" => "app",
+        "DB_PASSWORD" => "app"
+      }
     end
 
     # SSH setup to use vagrant's insecure key
@@ -38,7 +45,8 @@ Vagrant.configure("2") do |config|
       d.env = {
         "MARIADB_ROOT_PASSWORD" => "root",
         "MARIADB_USER" => "app",
-        "MARIADB_PASSWORD" => "app"
+        "MARIADB_PASSWORD" => "app",
+        "MARIADB_DATABASE" => "themepark"
       }
       d.remains_running = true
     end
