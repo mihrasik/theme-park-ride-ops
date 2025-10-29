@@ -2,6 +2,31 @@ ENV['VAGRANT_DEFAULT_PROVIDER'] = 'docker' # We define the provider to use which
 app_nodes = 3
 cidr_prefix = "192.168.10"
 
+
+# -------------------------------------------------
+# 1. Detect host CPU architecture
+# -------------------------------------------------
+def host_arch
+  case RbConfig::CONFIG['host_cpu']
+  when /arm64|aarch64/
+    'arm64'
+  else
+    'amd64'          # covers x86_64 Linux, Intel Mac, Windows WSL2
+  end
+end
+
+ARCH = host_arch
+puts "==> Detected host architecture: #{ARCH}"
+
+# -------------------------------------------------
+# 2. Choose the right Dockerfile
+# -------------------------------------------------
+DOCKERFILE = "containers/app/Dockerfile.#{ARCH}"
+
+unless File.exist?(DOCKERFILE)
+  abort "ERROR: #{DOCKERFILE} not found! Add a Dockerfile for #{ARCH}."
+end
+
 Vagrant.configure("2") do |config|
   (1..app_nodes).each do |i|
   config.vm.define "app#{i}" do |app|
@@ -12,7 +37,7 @@ Vagrant.configure("2") do |config|
       d.remains_running = true
       
       d.build_dir = "."  # <--- Build from project root!
-      d.dockerfile = "containers/app/Dockerfile"  # <--- Specify Dockerfile location
+      d.dockerfile = "#{DOCKERFILE}"  # <--- Specify Dockerfile location
 
       d.build_args = ["-t", "app"]  # <--- Tag the image with a unique name
       d.remains_running = true
