@@ -4,6 +4,7 @@ FROM mariadb:latest
 RUN apt-get update && apt-get install -y \
     openssh-server \
     sudo \
+    mariadb-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Generate SSH host keys

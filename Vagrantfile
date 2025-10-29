@@ -38,7 +38,8 @@ Vagrant.configure("2") do |config|
       d.env = {
         "MARIADB_ROOT_PASSWORD" => "root",
         "MARIADB_USER" => "app",
-        "MARIADB_PASSWORD" => "app"
+        "MARIADB_PASSWORD" => "app",
+        "MARIADB_DBNAME" => "parkdb"
       }
       d.remains_running = true
     end

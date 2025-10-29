@@ -1,14 +1,12 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:mariadb://db:3306/parkdb?useSSL=false&serverTimezone=UTC
+    username: app
+    password: app
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-  h2:
-    console:
-      enabled: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true
 
 server:
   port: 5000

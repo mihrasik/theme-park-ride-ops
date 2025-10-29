@@ -8,3 +8,4 @@ echo 'export PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
 ./gradlew clean build
+#./gradlew clean build --refresh-dependencies

@@ -1,5 +1,6 @@
 package com.exemple.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -12,8 +13,12 @@ import com.exemple.repository.ThemeParkRideRepository;
 import javax.validation.Valid;
 
 @RestController
+@RequestMapping("/api/theme-park-rides")
 public class ThemeParkRideController {
-	private final ThemeParkRideRepository themeParkRideRepository;
+	// private final ThemeParkRideRepository themeParkRideRepository;
+
+	@Autowired
+    private ThemeParkRideRepository themeParkRideRepository;
 
 	public ThemeParkRideController(ThemeParkRideRepository themeParkRideRepository) {
 		this.themeParkRideRepository = themeParkRideRepository;
@@ -30,8 +35,13 @@ public class ThemeParkRideController {
 				() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format("Invalid ride id %s", id)));
 	}
 
-	@PostMapping(value = "/ride", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ThemeParkRide createRide(@Valid @RequestBody ThemeParkRide themeParkRide) {
-		return themeParkRideRepository.save(themeParkRide);
-	}
+	// @PostMapping(value = "/ride", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	// public ThemeParkRide createRide(@Valid @RequestBody ThemeParkRide themeParkRide) {
+	// 	return themeParkRideRepository.save(themeParkRide);
+	// }
+
+	@PostMapping
+    public ThemeParkRide createThemeParkRide(@RequestBody ThemeParkRide ride) {
+        return themeParkRideRepository.save(ride);
+    }
 }
