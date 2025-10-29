@@ -2,6 +2,31 @@ ENV['VAGRANT_DEFAULT_PROVIDER'] = 'docker' # We define the provider to use which
 app_nodes = 3
 cidr_prefix = "192.168.10"
 
+
+# -------------------------------------------------
+# 1. Detect host CPU architecture
+# -------------------------------------------------
+def host_arch
+  case RbConfig::CONFIG['host_cpu']
+  when /arm64|aarch64/
+    'arm64'
+  else
+    'amd64'          # covers x86_64 Linux, Intel Mac, Windows WSL2
+  end
+end
+
+ARCH = host_arch
+puts "==> Detected host architecture: #{ARCH}"
+
+# -------------------------------------------------
+# 2. Choose the right Dockerfile
+# -------------------------------------------------
+DOCKERFILE = "containers/app/Dockerfile.#{ARCH}"
+
+unless File.exist?(DOCKERFILE)
+  abort "ERROR: #{DOCKERFILE} not found! Add a Dockerfile for #{ARCH}."
+end
+
 Vagrant.configure("2") do |config|
   (1..app_nodes).each do |i|
   config.vm.define "app#{i}" do |app|
@@ -12,7 +37,7 @@ Vagrant.configure("2") do |config|
       d.remains_running = true
       
       d.build_dir = "."  # <--- Build from project root!
-      d.dockerfile = "containers/app/Dockerfile"  # <--- Specify Dockerfile location
+      d.dockerfile = "#{DOCKERFILE}"  # <--- Specify Dockerfile location
 
       d.build_args = ["-t", "app"]  # <--- Tag the image with a unique name
       d.remains_running = true
@@ -20,12 +45,21 @@ Vagrant.configure("2") do |config|
       d.has_ssh = true
       d.cmd = ["/usr/sbin/sshd", "-D"]
       d.ports = ["#{5001 + i}:5000", "#{2201 + i}:22", "#{8081 + i}:8080"]
+      d.env = {
+        "DB_HOST" => "mariadb",
+        "DB_PORT" => "3306",
+        "DB_NAME" => "themepark",
+        "DB_USER" => "app",
+        "DB_PASSWORD" => "app"
+      }
     end
 
     # SSH setup to use vagrant's insecure key
     app.ssh.username = "vagrant"
     app.ssh.private_key_path = File.expand_path("~/.vagrant.d/insecure_private_key")
     app.ssh.insert_key = false
+  # Pin unique SSH host port per app to avoid 127.0.0.1:2200 conflicts
+  app.ssh.port = 2201 + i
     app.vm.network "private_network", ip: "#{cidr_prefix}.#{10 + i}", netmask: 24
     app.vm.network "forwarded_port", guest: 5000, host: "#{5001 + i}"
   end
@@ -38,7 +72,8 @@ Vagrant.configure("2") do |config|
       d.env = {
         "MARIADB_ROOT_PASSWORD" => "root",
         "MARIADB_USER" => "app",
-        "MARIADB_PASSWORD" => "app"
+        "MARIADB_PASSWORD" => "app",
+        "MARIADB_DATABASE" => "themepark"
       }
       d.remains_running = true
     end
