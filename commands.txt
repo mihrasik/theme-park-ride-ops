@@ -13,3 +13,5 @@ ssh -i ~/.vagrant.d/insecure_private_key -p 2222 vagrant@localhost
 -rw------- 1 ubuntu ubuntu 1675 Oct 23 16:03 /home/ubuntu/.vagrant.d/insecure_private_key
 
  curl localhost:5000/ride
+
+ docker exec -it mariadb bash
