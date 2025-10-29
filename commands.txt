@@ -18,3 +18,5 @@ ssh -i ~/.vagrant.d/insecure_private_key -p 2222 vagrant@localhost
 docker exec -it mariadb bash
 # get inside the database
 mariadb -u app -papp
+
+docker container ls
