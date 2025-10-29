@@ -14,9 +14,17 @@ ssh -i ~/.vagrant.d/insecure_private_key -p 2222 vagrant@localhost
 
  curl localhost:5000/ride
 
+
+curl -s -X POST -H 'Content-Type: application/json' -d '{"name":"Dragon-20251028","description":"Scary","thrillFactor":5,"vomitFactor":4}' http://localhost:5003/ride | python3 -m json.tool
+
 # get inside the database container
 docker exec -it mariadb bash
 # get inside the database
 mariadb -u app -papp
+
+show databases;
+use themepark;
+show tables;
+select * from theme_park_ride;
 
 docker container ls
