@@ -80,3 +80,32 @@ cd /vagrant
 helm uninstall dataops -n prod
 helm install dataops charts/dataops/ -n prod
 
+
+
+# Ensure the Docker images are available in the shared folder:
+# Make sure that the docker-images directory contains the .tar files.
+
+# Run Terraform Apply:
+# Execute the following commands to apply your Terraform configuration:
+
+terraform init
+terraform plan
+terraform apply
+
+
+
+# Run Terraform Plan and save to a file
+terraform plan -out=tfplan
+
+# Apply the saved plan
+terraform apply tfplan
+
+
+# Verify Image Import:
+# After running terraform apply, you can verify that the images have been imported into K3s by listing the images in K3s:
+sudo k3s crictl images
+
+#Check Helm Release Status:
+#Ensure that your Helm release is deployed correctly and the pods are running:
+helm list -n prod
+kubectl get pods -n prod

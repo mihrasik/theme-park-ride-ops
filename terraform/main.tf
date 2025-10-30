@@ -1,17 +1,4 @@
 # terraform/main.tf
-# terraform {
-#   required_version = ">= 1.5"
-# }
-
-# provider "kubernetes" {
-#   config_path = "~/.kube/config"
-# }
-
-# provider "helm" {
-#   kubernetes {
-#     config_path = "~/.kube/config"
-#   }
-# }
 
 terraform {
   required_version = ">= 1.5"
@@ -26,16 +13,13 @@ terraform {
     }
   }
 }
-# ===============================================
+
 # Kubernetes Provider – uses kubeconfig
-# ===============================================
 provider "kubernetes" {
   config_path = "~/.kube/config"
 }
 
-# ===============================================
 # Helm Provider – NEW SYNTAX (no block!)
-# ===============================================
 provider "helm" {
   kubernetes {
     config_path = "~/.kube/config"
@@ -92,6 +76,8 @@ resource "helm_release" "dataops" {
   namespace  = "prod"
   create_namespace = true
 
+  timeout = 600
+
   set {
     name  = "image.repository"
     value = "local/app"
@@ -127,5 +113,13 @@ resource "helm_release" "dataops" {
   set {
     name  = "lb.image.repository"
     value = "local/nginx-lb"
+  }
+  set {
+    name  = "lb.image.tag"
+    value = "latest"
+  }
+  set {
+    name  = "lb.image.pullPolicy"
+    value = "Never"
   }
 }

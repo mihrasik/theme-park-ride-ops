@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: app1
-          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          image: localhost:5000/app:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           envFrom:

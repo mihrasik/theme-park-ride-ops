@@ -2,20 +2,21 @@
 namespace: prod
 
 image:
-  repository: local/app
+  repository: localhost:5000/app:latest
+  imagePullPolicy: IfNotPresent
   tag: latest
   pullPolicy: Never
 
 mariadb:
   enabled: true
   image:
-    repository: local/mariadb
+    repository: localhost:5000/mariadb
     tag: latest
     pullPolicy: Never
 
 lb:
   enabled: true
   image:
-    repository: local/nginx-lb
+    repository: localhost:5000/nginx-lb
     tag: latest
     pullPolicy: Never
