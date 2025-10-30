@@ -1,0 +1,24 @@
+# .gitlab-ci.yml
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: docker:24
+  services: [docker:dind]
+  script:
+    - docker build -f containers/app/Dockerfile.$(dpkg --print-architecture) -t local/app:latest .
+    - docker save local/app:latest -o app.tar
+  artifacts:
+    paths: [app.tar]
+    expire_in: 1 day
+
+deploy:
+  stage: deploy
+  image: alpine/k8s:1.29
+  script:
+    - kubectl config use-context vagrant
+    - k3s ctr images import app.tar
+    - helm upgrade --install dataops ./charts/dataops -n prod --create-namespace
+  dependencies: [build]

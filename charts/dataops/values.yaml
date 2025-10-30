@@ -1,0 +1,21 @@
+# charts/dataops/values.yaml
+namespace: prod
+
+image:
+  repository: local/app
+  tag: latest
+  pullPolicy: Never
+
+mariadb:
+  enabled: true
+  image:
+    repository: local/mariadb
+    tag: latest
+    pullPolicy: Never
+
+lb:
+  enabled: true
+  image:
+    repository: local/nginx-lb
+    tag: latest
+    pullPolicy: Never

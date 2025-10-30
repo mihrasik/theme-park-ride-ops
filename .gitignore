@@ -140,3 +140,9 @@ docker-compose.secret.yml
 .fuse_hidden*
 
 *.pub
+
+.terraform
+.terraform.lock*
+terraform.tfstate*
+*.tar
+*.deb

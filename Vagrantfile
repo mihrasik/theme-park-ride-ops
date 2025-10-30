@@ -1,108 +1,63 @@
-ENV['VAGRANT_DEFAULT_PROVIDER'] = 'docker' # We define the provider to use which is Docker, Start of instruction 1
-app_nodes = 3
-cidr_prefix = "192.168.10"
+# Vagrantfile  (replace the whole file with this – keeps your old containers for reference)
 
+VAGRANTFILE_API_VERSION = "2"
+BOX = "ubuntu/jammy64"                 # 22.04 LTS, works on Intel/AMD and Apple Silicon (via Parallels/VirtualBox)
 
-# -------------------------------------------------
-# 1. Detect host CPU architecture
-# -------------------------------------------------
-def host_arch
-  case RbConfig::CONFIG['host_cpu']
-  when /arm64|aarch64/
-    'arm64'
-  else
-    'amd64'          # covers x86_64 Linux, Intel Mac, Windows WSL2
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'virtualbox'   # or 'parallels' on M1/M2
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = BOX
+  config.vm.hostname = "k3s-host"
+
+  # 2 CPU, 4 GB RAM – enough for k3s + 3 app pods + MariaDB
+  config.vm.provider "virtualbox" do |vb|
+    # vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    vb.cpus = 4
+    vb.memory = 12096
+    vb.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
   end
+
+  # Forward the k3s API and the Ingress
+  config.vm.network "forwarded_port", guest: 6443, host: 6443   # k3s API
+  config.vm.network "forwarded_port", guest: 80,   host: 8088   # Nginx Ingress
+
+  # Private network so the host can talk to the k3s node (same subnet you used before)
+  config.vm.network "private_network", ip: "192.168.56.100"
+
+  # -------------------------------------------------
+  # 1. Provision Docker, k3s, Terraform, Helm
+  # -------------------------------------------------
+  config.vm.provision "shell", path: "vagrant/provision.sh", privileged: true
+
+  # -------------------------------------------------
+  # 2. Build **local** Docker images (no push)
+  # -------------------------------------------------
+  config.vm.provision "shell", inline: <<-SHELL
+    set -e
+    cd /vagrant
+
+    # Detect arch (same logic you already have)
+    ARCH=$(dpkg --print-architecture)   # amd64 or arm64
+    DOCKERFILE="containers/app/Dockerfile.${ARCH}"
+
+    echo "Building app image for $ARCH ..."
+    docker build -f "$DOCKERFILE" -t local/app:latest .
+
+    echo "Building db image ..."
+    docker build -t local/mariadb:latest ./containers/db
+
+    echo "Building lb image ..."
+    docker build -t local/nginx-lb:latest ./containers/lb
+
+    # Save images to a shared folder so Terraform can load them into k3s
+    mkdir -p /vagrant/docker-images
+    docker save local/app:latest      -o /vagrant/docker-images/app.tar
+    docker save local/mariadb:latest  -o /vagrant/docker-images/mariadb.tar
+    docker save local/nginx-lb:latest -o /vagrant/docker-images/lb.tar
+  SHELL
+   # Add the user to the k3s group
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   set -e
+  #   usermod -aG k3s $USER
+  # SHELL
 end
-
-ARCH = host_arch
-puts "==> Detected host architecture: #{ARCH}"
-
-# -------------------------------------------------
-# 2. Choose the right Dockerfile
-# -------------------------------------------------
-DOCKERFILE = "containers/app/Dockerfile.#{ARCH}"
-
-unless File.exist?(DOCKERFILE)
-  abort "ERROR: #{DOCKERFILE} not found! Add a Dockerfile for #{ARCH}."
-end
-
-Vagrant.configure("2") do |config|
-  (1..app_nodes).each do |i|
-  config.vm.define "app#{i}" do |app|
-    app.vm.hostname = "app#{i}"
-    app.vm.provider "docker" do |d|
-      d.name = "app#{i}"
-      # d.build_dir = "./containers/app"
-      d.remains_running = true
-      
-      d.build_dir = "."  # <--- Build from project root!
-      d.dockerfile = "#{DOCKERFILE}"  # <--- Specify Dockerfile location
-
-      d.build_args = ["-t", "app"]  # <--- Tag the image with a unique name
-      d.remains_running = true
-      
-      d.has_ssh = true
-      d.cmd = ["/usr/sbin/sshd", "-D"]
-      d.ports = ["#{5001 + i}:5000", "#{2201 + i}:22", "#{8081 + i}:8080"]
-      d.env = {
-        "DB_HOST" => "mariadb",
-        "DB_PORT" => "3306",
-        "DB_NAME" => "themepark",
-        "DB_USER" => "app",
-        "DB_PASSWORD" => "app"
-      }
-    end
-
-    # SSH setup to use vagrant's insecure key
-    app.ssh.username = "vagrant"
-    app.ssh.private_key_path = File.expand_path("~/.vagrant.d/insecure_private_key")
-    app.ssh.insert_key = false
-  # Pin unique SSH host port per app to avoid 127.0.0.1:2200 conflicts
-  app.ssh.port = 2201 + i
-    app.vm.network "private_network", ip: "#{cidr_prefix}.#{10 + i}", netmask: 24
-    app.vm.network "forwarded_port", guest: 5000, host: "#{5001 + i}"
-  end
-  end
-  config.vm.define "db" do |db|
-    db.vm.provider "docker" do |d|
-      d.build_dir = "./containers/db"
-      d.name = "mariadb"
-      d.ports = ["3306:3306", "2242:22"]
-      d.env = {
-        "MARIADB_ROOT_PASSWORD" => "root",
-        "MARIADB_USER" => "app",
-        "MARIADB_PASSWORD" => "app",
-        "MARIADB_DATABASE" => "themepark"
-      }
-      d.remains_running = true
-    end
-
-    db.ssh.username = "vagrant"
-    db.ssh.private_key_path = File.expand_path("~/.vagrant.d/insecure_private_key")
-    db.ssh.insert_key = false
-    db.vm.network "private_network", ip: "192.168.10.22"
-  end
-  config.vm.define "lb" do |lb| # We define a name for the instance we have to set up
-       
-    lb.vm.network "private_network", ip: "192.168.10.33", netmask: 24
-   
-    lb.vm.hostname = "lb"
-    lb.vm.network "forwarded_port", guest: 80, host: 8088 # 
-    lb.vm.provider "docker" do |lb_docker| # Start of instruction 3
-      lb_docker.build_dir = "./containers/lb" # We define the docker image to use
-      lb_docker.has_ssh = true # Possible connection in SSH
-      lb_docker.privileged = true # Run the container with privileges on the underlying machine
-       # Combine all Docker create args here
-       # Configure CPU and memory using create_args
-      lb_docker.create_args = [
-        "--cpus=1",                  # Allocate 2 CPU cores
-        "--memory=2048m",            # Allocate 2048 MB (2 GB) of memory
-        "-v", "/sys/fs/cgroup:/sys/fs/cgroup:ro"  # Mount cgroup (required for some Docker versions)
-      ]
-
-      lb_docker.name = "lb" #We define a name for our container
-    end #End of statement 3
-  end #End of instruction 2
-end
-
