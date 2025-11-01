@@ -1,0 +1,32 @@
+# /theme-park-ride-ops/theme-park-ride-ops/app/ride-ops/src/main/resources/application.yml
+
+spring:
+  datasource:
+    url: jdbc:mariadb://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.theme.rideops: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+prometheus:
+  enabled: true
+
+# Additional configuration can be added here as needed.

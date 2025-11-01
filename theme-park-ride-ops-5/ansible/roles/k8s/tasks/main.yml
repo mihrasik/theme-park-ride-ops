@@ -1,0 +1,39 @@
+- name: Install Kubernetes packages
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+      - docker.io
+    state: present
+    update_cache: yes
+
+- name: Initialize Kubernetes cluster
+  command: kubeadm init
+  when: ansible_hostname == "master"
+
+- name: Set up kubeconfig for the user
+  command: "{{ item }}"
+  with_items:
+    - mkdir -p $HOME/.kube
+    - cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    - chown $(id -u):$(id -g) $HOME/.kube/config
+  when: ansible_hostname == "master"
+
+- name: Install Traefik using Helm
+  helm:
+    name: traefik
+    chart: traefik/traefik
+    namespace: "{{ lookup('env', 'THEMEPARK_NAMESPACE') }}"
+    values:
+      - traefik-values.yaml
+
+- name: Deploy MariaDB
+  kubernetes:
+    state: present
+    definition: "{{ lookup('file', 'k8s/mariadb/deployment.yaml') }}"
+
+- name: Deploy Spring Boot application
+  kubernetes:
+    state: present
+    definition: "{{ lookup('file', 'helm/subcharts/ride-ops/templates/deployment.yaml') }}"

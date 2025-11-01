@@ -1,0 +1,32 @@
+# helm/subcharts/ride-ops/values.yaml
+replicaCount: 3
+
+image:
+  repository: docker.io/myrepo/ride-ops
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  name: ride-ops
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  name: ""
+  path: /
+  pathType: ImplementationSpecific
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - /
+  tls: [] 
+
+resources: {}
+  
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

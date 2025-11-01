@@ -1,0 +1,91 @@
+# helm/umbrella-chart/values.yaml
+
+rideOps:
+  replicaCount: 3
+  image:
+    repository: docker.io/myrepo/ride-ops
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  ingress:
+    enabled: true
+    annotations: {}
+    pathType: Prefix
+    paths:
+      - /
+    host: rideops.local
+    tls: []
+  resources: {}
+  env:
+    - name: APP_ENV
+      value: local
+    - name: DB_HOST
+      valueFrom:
+        configMapKeyRef:
+          name: rideops-config
+          key: db_host
+    - name: DB_PORT
+      valueFrom:
+        configMapKeyRef:
+          name: rideops-config
+          key: db_port
+    - name: DB_NAME
+      valueFrom:
+        configMapKeyRef:
+          name: rideops-config
+          key: db_name
+    - name: DB_USER
+      valueFrom:
+        secretKeyRef:
+          name: rideops-secret
+          key: db_user
+    - name: DB_PASS
+      valueFrom:
+        secretKeyRef:
+          name: rideops-secret
+          key: db_pass
+
+mariadb:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: docker.io/library/mariadb
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3306
+  resources: {}
+  env:
+    - name: MYSQL_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: mariadb-secret
+          key: root_password
+    - name: MYSQL_DATABASE
+      value: themepark
+    - name: MYSQL_USER
+      valueFrom:
+        secretKeyRef:
+          name: mariadb-secret
+          key: db_user
+    - name: MYSQL_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: mariadb-secret
+          key: db_pass
+
+traefik:
+  enabled: true
+  image:
+    repository: traefik
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    enabled: true
+    type: LoadBalancer
+    port: 80
+    annotations: {}
+  resources: {}

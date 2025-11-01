@@ -1,0 +1,39 @@
+# helm/subcharts/ride-ops/templates/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-ride-ops
+  labels:
+    app: {{ .Release.Name }}-ride-ops
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-ride-ops
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-ride-ops
+    spec:
+      containers:
+        - name: ride-ops
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          env:
+            - name: DB_HOST
+              value: {{ .Values.env.DB_HOST | quote }}
+            - name: DB_PORT
+              value: {{ .Values.env.DB_PORT | quote }}
+            - name: DB_NAME
+              value: {{ .Values.env.DB_NAME | quote }}
+            - name: DB_USER
+              value: {{ .Values.env.DB_USER | quote }}
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: ride-ops-db-secret
+                  key: password
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

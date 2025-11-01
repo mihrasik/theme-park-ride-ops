@@ -1,0 +1,52 @@
+- name: Install required packages
+  apt:
+    name:
+      - docker.io
+      - python3-pip
+      - python3-apt
+    state: present
+
+- name: Install Ansible
+  pip:
+    name: ansible
+    state: present
+
+- name: Ensure Docker is running
+  service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add user to the Docker group
+  user:
+    name: "{{ ansible_user }}"
+    group: docker
+    append: yes
+
+- name: Install kubectl
+  get_url:
+    url: https://storage.googleapis.com/kubernetes-release/release/{{ kubectl_version }}/bin/linux/amd64/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+
+- name: Install Helm
+  get_url:
+    url: https://get.helm.sh/helm-v{{ helm_version }}-linux-amd64.tar.gz
+    dest: /tmp/helm.tar.gz
+
+- name: Extract Helm
+  unarchive:
+    src: /tmp/helm.tar.gz
+    dest: /usr/local/bin/
+    remote_src: yes
+
+- name: Clean up Helm tarball
+  file:
+    path: /tmp/helm.tar.gz
+    state: absent
+
+- name: Install ArgoCD CLI
+  get_url:
+    url: https://github.com/argoproj/argo-cd/releases/download/v{{ argocd_version }}/argocd-linux-amd64
+    dest: /usr/local/bin/argocd
+    mode: '0755'

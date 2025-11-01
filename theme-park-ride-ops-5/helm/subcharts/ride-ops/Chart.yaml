@@ -1,0 +1,22 @@
+# helm/subcharts/ride-ops/Chart.yaml
+apiVersion: v2
+name: ride-ops
+description: A Helm chart for the Ride Ops service
+type: application
+version: 0.1.0
+appVersion: "1.0"
+dependencies:
+  - name: mariadb
+    version: 0.1.0
+    repository: "file://../mariadb"
+icon: https://example.com/icon.png
+keywords:
+  - ride
+  - operations
+  - theme park
+maintainers:
+  - name: Your Name
+    email: your.email@example.com
+sources:
+  - https://github.com/mihrasik/theme-park-ride-ops
+```

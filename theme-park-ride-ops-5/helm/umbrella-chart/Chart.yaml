@@ -1,0 +1,12 @@
+# helm/umbrella-chart/Chart.yaml
+apiVersion: v2
+name: theme-park-ride-ops
+description: A Helm chart for deploying the Theme Park Ride Ops application
+type: application
+version: 0.1.0
+appVersion: "1.0"
+dependencies:
+  - name: ride-ops
+    version: 0.1.0
+    repository: file://../subcharts/ride-ops
+```

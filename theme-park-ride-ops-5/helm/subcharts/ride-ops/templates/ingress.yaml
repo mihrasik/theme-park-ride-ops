@@ -1,0 +1,25 @@
+# helm/subcharts/ride-ops/templates/ingress.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ride-ops.fullname" . }}
+  labels:
+    app: {{ include "ride-ops.name" . }}
+    chart: {{ include "ride-ops.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+spec:
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "ride-ops.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}

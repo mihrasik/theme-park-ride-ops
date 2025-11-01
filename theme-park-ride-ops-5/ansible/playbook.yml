@@ -1,0 +1,66 @@
+# ansible/playbook.yml
+---
+- name: Provision and configure Theme Park Ride Ops application
+  hosts: all
+  become: yes
+  vars_files:
+    - ../.env
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - python3-pip
+          - kubectl
+          - helm
+        state: present
+        update_cache: yes
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install Ansible Kubernetes module
+      pip:
+        name: openshift
+        state: present
+
+    - name: Configure Kubernetes cluster
+      command: >
+        kubectl apply -f /k8s/namespace.yaml
+      args:
+        chdir: /home/dm/dst/project/theme-park-ride-ops/k8s
+
+    - name: Deploy MariaDB
+      command: >
+        kubectl apply -f /k8s/mariadb/deployment.yaml
+      args:
+        chdir: /home/dm/dst/project/theme-park-ride-ops/k8s/mariadb
+
+    - name: Deploy Traefik
+      command: >
+        kubectl apply -f /k8s/traefik/deployment.yaml
+      args:
+        chdir: /home/dm/dst/project/theme-park-ride-ops/k8s/traefik
+
+    - name: Deploy Ride Ops application
+      command: >
+        helm upgrade --install ride-ops ./helm/subcharts/ride-ops --namespace {{ THEMEPARK_NAMESPACE }} --values ./helm/subcharts/ride-ops/values.yaml
+      args:
+        chdir: /home/dm/dst/project/theme-park-ride-ops
+
+    - name: Verify deployment
+      command: >
+        kubectl rollout status deployment/ride-ops --namespace {{ THEMEPARK_NAMESPACE }}
+      register: rollout_status
+      until: rollout_status is succeeded
+      retries: 5
+      delay: 10
+
+    - name: Clean up old images
+      command: >
+        docker image prune -f
+      when: ansible_distribution == "Ubuntu"

@@ -1,0 +1,86 @@
+# monitoring/grafana-values.yaml
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    access: proxy
+    isDefault: true
+    jsonData:
+      tlsSkipVerify: true
+      httpMethod: POST
+      timeInterval: "5s"
+      maxRetries: 3
+      timeout: "30s"
+      keepAlive: true
+  - name: MySQL
+    type: mysql
+    url: mysql:3306
+    access: proxy
+    jsonData:
+      tlsSkipVerify: true
+      user: ${DB_USER}
+      password: ${DB_PASS}
+      database: ${DB_NAME}
+      maxOpenConns: 100
+      maxIdleConns: 10
+      connMaxLifetime: "1h"
+    
+grafana:
+  admin:
+    existingSecret: grafana-admin
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 3000
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: standard
+  ingress:
+    enabled: true
+    path: /
+    hosts:
+      - grafana.${THEMEPARK_NAMESPACE}.svc.cluster.local
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+      traefik.ingress.kubernetes.io/router.rule: Host(`grafana.${THEMEPARK_NAMESPACE}.svc.cluster.local`)
+      traefik.ingress.kubernetes.io/service.servicename: grafana
+      traefik.ingress.kubernetes.io/service.port: 3000
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 10
+          options:
+            path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      my-dashboard:
+        json: |
+          {
+            "annotations": {
+              "list": [
+                {
+                  "builtIn": 1,
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                  },
+                  "enable": true,
+                  "hide": true,
+                  "name": "Annotations",
+                  "type": "dashboard"
+                }
+              ]
+            },
+            "panels": [],
+            "schemaVersion": 16,
+            "version": 1
+          }
