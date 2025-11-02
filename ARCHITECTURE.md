@@ -453,6 +453,7 @@ theme-park-ride-ops-4/
 
 ## 📖 Additional Resources
 
+- [System Design Document](SYSTEM_DESIGN.md) - Flowcharts, UML diagrams, and visual system flows
 - [Quick Start Guide](QUICKSTART.md) - Get running in 2 commands
 - [Scripts Documentation](scripts/README.md) - Detailed automation guide
 - [Commands Reference](commands.txt) - All available commands

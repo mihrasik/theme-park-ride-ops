@@ -53,6 +53,8 @@ When done testing:
 - Check `commands.txt` for all available commands
 - Read `scripts/README.md` for detailed documentation
 - See main `README.md` for comprehensive project information
+- View `ARCHITECTURE.md` for complete architecture documentation
+- Explore `SYSTEM_DESIGN.md` for flowcharts and UML diagrams
 
 ## 🔧 Manual Testing
 
