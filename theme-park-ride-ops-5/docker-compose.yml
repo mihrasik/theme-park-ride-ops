@@ -3,8 +3,10 @@ version: '3.8'
 services:
   ride-ops:
     build:
-      context: ./app/ride-ops
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: theme-park-ride-ops-5/app/ride-ops/Dockerfile
+    env_file:
+      - .env
     environment:
       - APP_ENV=local
       - DB_HOST=${DB_HOST}
@@ -13,21 +15,35 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
     ports:
-      - "8080:8080"
+      - "8090:5000"
     networks:
       - themepark-network
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
 
   mariadb:
     image: mariadb:latest
+    env_file:
+      - .env
     environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${DB_NAME}
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASS}
-      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_ALLOW_EMPTY_PASSWORD=no
     volumes:
       - mariadb-data:/var/lib/mysql
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     networks:
       - themepark-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 networks:
   themepark-network:

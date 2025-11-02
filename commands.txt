@@ -1,30 +1,117 @@
+# ========================================
+# KUBERNETES DEPLOYMENT (RECOMMENDED)
+# ========================================
+
+# 🚀 ONE-COMMAND DEPLOYMENT - Deploy entire application to Kubernetes
+./scripts/deploy-k8s.sh
+
+# 🧪 TEST ALL API ENDPOINTS - Comprehensive API testing with port-forwarding
+./scripts/test-api.sh
+
+# 🧹 CLEANUP - Remove all Kubernetes resources
+./scripts/cleanup.sh
+
+# ========================================
+# MANUAL KUBERNETES COMMANDS
+# ========================================
+
+# Check if k3d cluster is running
+k3d cluster list
+
+# Get all pods in themepark-app namespace
+kubectl get pods -n themepark-app
+
+# Get all services in themepark-app namespace
+kubectl get services -n themepark-app
+
+# Check application logs
+kubectl logs -f deployment/ride-ops -n themepark-app
+
+# Check MariaDB logs
+kubectl logs -f deployment/mariadb -n themepark-app
+
+# Port forward to access API locally
+kubectl port-forward service/ride-ops 8090:8080 -n themepark-app
+
+# ========================================
+# API TESTING COMMANDS
+# ========================================
+
+# Get all rides
+curl http://localhost:8090/ride
+
+# Get specific ride by ID
+curl -X GET http://localhost:8090/ride/1
+
+# Create a new ride
+curl -X POST http://localhost:8090/ride -H "Content-Type: application/json" -d '{"name":"Kubernetes Mountain","description":"Scalable cloud-native coaster","thrillFactor":5,"vomitFactor":1}'
+
+# Health check endpoint
+curl -X GET http://localhost:8090/actuator/health
+
+# All actuator endpoints
+curl http://localhost:8090/actuator
+
+# Create another ride with pretty JSON output
+curl -s -X POST -H 'Content-Type: application/json' -d '{"name":"Dragon-20251028","description":"Scary","thrillFactor":5,"vomitFactor":4}' http://localhost:8090/ride | python3 -m json.tool
+
+# ========================================
+# DATABASE ACCESS (KUBERNETES)
+# ========================================
+
+# Access MariaDB container in Kubernetes
+kubectl exec -it deployment/mariadb -n themepark-app -- /bin/bash
+
+# Connect to MariaDB database (inside container)
+mariadb -u themeuser -p
+# Password: themedb123
+
+# SQL commands to run inside MariaDB
+show databases;
+use themepark;
+show tables;
+select * from theme_park_ride;
+describe theme_park_ride;
+
+# ========================================
+# DOCKER COMPOSE (LOCAL DEVELOPMENT)
+# ========================================
+
+# Run with Docker Compose for local development
+cd theme-park-ride-ops-5
+docker-compose up --build
+
+# Access MariaDB in Docker Compose
+docker exec -it mariadb bash
+mariadb -u app -papp
+
+# ========================================
+# LEGACY VAGRANT COMMANDS
+# ========================================
+
 # run vagrant that creates docker container from Dockerfile
 vagrant up --provider=docker
 
 # get insecure key
 curl -o insecure_key.pub https://raw.githubusercontent.com/hashicorp/vagrant/main/keys/vagrant.pub
 
-# deleted old fingerpint
+# deleted old fingerprint
 ssh-keygen -f '/home/ubuntu/.ssh/known_hosts' -R '[localhost]:2222'
 
 ssh -i ~/.vagrant.d/insecure_private_key -p 2222 vagrant@localhost
 
- ll  ~/.vagrant.d/insecure_private_key
--rw------- 1 ubuntu ubuntu 1675 Oct 23 16:03 /home/ubuntu/.vagrant.d/insecure_private_key
-
- curl localhost:5000/ride
-
-
-curl -s -X POST -H 'Content-Type: application/json' -d '{"name":"Dragon-20251028","description":"Scary","thrillFactor":5,"vomitFactor":4}' http://localhost:5003/ride | python3 -m json.tool
-
-# get inside the database container
-docker exec -it mariadb bash
-# get inside the database
-mariadb -u app -papp
-
-show databases;
-use themepark;
-show tables;
-select * from theme_park_ride;
-
+# Check docker containers
 docker container ls
+
+# ========================================
+# BUILD AND TEST
+# ========================================
+
+# Build the application
+./gradlew clean build
+
+# Run tests
+./gradlew test
+
+# Run application locally (without containers)
+./gradlew bootRun

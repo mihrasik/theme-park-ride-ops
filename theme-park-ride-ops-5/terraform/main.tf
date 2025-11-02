@@ -37,7 +37,7 @@ resource "kubernetes_deployment" "ride_ops" {
           name  = "ride-ops"
           image = "${var.registry_url}/ride-ops:${var.image_tag}"
 
-          ports {
+          port {
             container_port = 8080
           }
 

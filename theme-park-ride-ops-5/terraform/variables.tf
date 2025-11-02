@@ -66,9 +66,7 @@ variable "grafana_port" {
 }
 
 variable "image_tag" {
-
   description = "The tag of the Docker image to deploy"
-
   type        = string
-  default = "your_docker_image"
+  default     = "latest"
 }

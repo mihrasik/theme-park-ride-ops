@@ -3,12 +3,12 @@
 rideOps:
   replicaCount: 3
   image:
-    repository: docker.io/myrepo/ride-ops
+    repository: ride-ops
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Never
   service:
     type: ClusterIP
-    port: 8080
+    port: 5000
   ingress:
     enabled: true
     annotations: {}
