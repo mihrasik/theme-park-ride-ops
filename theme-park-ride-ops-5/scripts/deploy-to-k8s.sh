@@ -8,7 +8,7 @@ set -e
 echo "🎢 Theme Park Ride Ops - Kubernetes Deployment Script"
 echo "======================================================"
 
-PROJECT_ROOT="/Users/rahulsingh/Ekta/DataScientest/theme-park-ride-ops-4"
+PROJECT_ROOT="$(pwd)/../../"
 K8S_DIR="$PROJECT_ROOT/theme-park-ride-ops-5"
 NAMESPACE="themepark-app"
 
@@ -36,15 +36,51 @@ print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
+# Function to install kubectl
+install_kubectl() {
+    print_info "Installing kubectl..."
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    sudo mv kubectl /usr/local/bin/
+    print_status "kubectl installed successfully"
+}
+
+# Function to install k3d
+install_k3d() {
+    print_info "Installing k3d..."
+    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+    print_status "k3d installed successfully"
+}
+
+# Function to create k3d cluster if it doesn't exist
+ensure_k3d_cluster() {
+    if ! k3d cluster list | grep -q "themepark"; then
+        print_info "Creating k3d cluster..."
+        k3d cluster create themepark --servers 1 --agents 2
+        print_status "k3d cluster created successfully"
+    else
+        print_info "k3d cluster 'themepark' already exists"
+    fi
+}
+
 # Check prerequisites
 echo
 print_info "Checking prerequisites..."
 
 # Check if kubectl is available
 if ! command -v kubectl &> /dev/null; then
-    print_error "kubectl is not installed. Please install kubectl first."
-    exit 1
+    print_warning "kubectl is not installed. Installing now..."
+    install_kubectl
 fi
+
+# Check if k3d is available
+if ! command -v k3d &> /dev/null; then
+    print_warning "k3d is not installed. Installing now..."
+    install_k3d
+fi
+
+# Ensure k3d cluster exists and is running
+ensure_k3d_cluster
 
 # Check if cluster is accessible
 if ! kubectl cluster-info &> /dev/null; then
