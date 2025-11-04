@@ -15,7 +15,16 @@ spec:
     spec:
       containers:
       - name: mariadb
-        image: mariadb:latest
+        image: mariadb:10.5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 3306
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
@@ -31,12 +40,10 @@ spec:
             secretKeyRef:
               name: mariadb-secret
               key: mysql-user-password
-        ports:
-        - containerPort: 3306
         volumeMounts:
-        - name: mariadb-storage
+        - name: mariadb-data
           mountPath: /var/lib/mysql
       volumes:
-      - name: mariadb-storage
+      - name: mariadb-data
         persistentVolumeClaim:
           claimName: mariadb-pvc

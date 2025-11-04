@@ -11,6 +11,11 @@ echo "======================================================"
 PROJECT_ROOT="$(pwd)/../../"
 K8S_DIR="$PROJECT_ROOT/theme-park-ride-ops-5"
 NAMESPACE="themepark-app"
+APP_RIDE_OPS_ROOT="$K8S_DIR/app/ride-ops"
+
+echo "PROJECT_ROOT $PROJECT_ROOT"
+echo "K8S_DIR $K8S_DIR"
+echo "APP_RIDE_OPS_ROOT $APP_RIDE_OPS_ROOT" 
 
 # Color codes for output
 RED='\033[0;31m'
@@ -93,15 +98,15 @@ print_status "Prerequisites check passed"
 # Step 1: Build the application
 echo
 print_info "Step 1: Building the Spring Boot application..."
-cd "$PROJECT_ROOT"
+cd "$APP_RIDE_OPS_ROOT"
 ./gradlew clean build -x test
 print_status "Application built successfully"
 
 # Step 2: Build Docker image
 echo
 print_info "Step 2: Building Docker image..."
-cd "$K8S_DIR/app/ride-ops"
-docker build -t ride-ops:latest .
+cd "$APP_RIDE_OPS_ROOT"
+docker build -t ride-ops:latest -f Dockerfile.amd64 .
 print_status "Docker image built successfully"
 
 # Step 3: Import image to k3d cluster
@@ -163,8 +168,10 @@ print_status "MariaDB deployed and ready"
 # Step 7: Deploy Ride Ops application
 echo
 print_info "Step 7: Deploying Ride Ops application..."
-kubectl apply -f k8s/ride-ops-deployment.yaml
-kubectl apply -f k8s/ride-ops-service.yaml
+# kubectl apply -f k8s/ride-ops-deployment.yaml
+# kubectl apply -f k8s/ride-ops-service.yaml
+kubectl apply -f k8s/ride-ops/deployment.yaml
+kubectl apply -f k8s/ride-ops/service.yaml
 
 # Wait for Ride Ops to be ready
 print_info "Waiting for Ride Ops application to be ready..."

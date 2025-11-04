@@ -115,3 +115,12 @@ docker container ls
 
 # Run application locally (without containers)
 ./gradlew bootRun
+
+
+# Delete the existing MariaDB deployment and PVC
+kubectl delete deployment mariadb -n themepark-app
+kubectl delete pvc mariadb-pvc -n themepark-app
+
+# Apply the new configurations
+kubectl apply -f k8s/mariadb/pvc.yaml
+kubectl apply -f k8s/mariadb/deployment.yaml

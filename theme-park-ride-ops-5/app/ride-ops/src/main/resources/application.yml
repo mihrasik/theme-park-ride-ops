@@ -1,37 +1,29 @@
-# /theme-park-ride-ops/theme-park-ride-ops/app/ride-ops/src/main/resources/application.yml
-
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
-
-  h2:
-    console:
-      enabled: true
-
+    url: jdbc:mariadb://${DB_HOST:mariadb}:${DB_PORT:3306}/${DB_NAME:themepark}
+    driver-class-name: org.mariadb.jdbc.Driver
+    username: ${DB_USER:themeuser}
+    password: ${DB_PASS:themedb123}
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MariaDBDialect
     show-sql: true
-    database-platform: org.hibernate.dialect.H2Dialect
+  h2:
+    console:
+      enabled: false
 
 server:
   port: 5000
 
-logging:
-  level:
-    root: INFO
-    com.theme.rideops: DEBUG
+info:
+  app:
+    version: CI_PIPELINE_IID
+    commit: CI_COMMIT_SHORT_SHA
+    branch: CI_COMMIT_BRANCH
 
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
-
-prometheus:
-  enabled: true
-
-# Additional configuration can be added here as needed.
+        include: '*'

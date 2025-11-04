@@ -1,0 +1,28 @@
+# Use official openjdk 17 alpine image (more stable than 12)
+# FROM openjdk:17-alpine
+# FROM openjdk:12-alpine
+# FROM openjdk:17-jre-slim
+# FROM openjdk:11
+FROM amazoncorretto:11-alpine
+
+# Install necessary utilities
+RUN apk update && apk add --no-cache bash curl
+
+# Create app directory
+RUN mkdir -p /app
+
+# Copy the Spring‑Boot application
+COPY build/libs/*.jar /app/theme-park-ride-gradle.jar
+
+# Expose the required port
+EXPOSE 8080
+
+# Health-check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+# Set working directory
+WORKDIR /app
+
+# Run the application
+ENTRYPOINT ["java", "-jar", "theme-park-ride-gradle.jar"]
