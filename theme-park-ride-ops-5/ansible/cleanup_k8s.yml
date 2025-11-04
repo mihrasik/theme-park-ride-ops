@@ -1,0 +1,12 @@
+---
+- name: Cleanup Kubernetes resources in themepark-app namespace
+  hosts: localhost
+  tasks:
+    - name: Delete all pods in the themepark-app namespace
+      command: kubectl delete pods --all -n themepark-app
+
+    - name: Delete all deployments in the themepark-app namespace
+      command: kubectl delete deployment --all -n themepark-app
+
+    - name: Delete all PVCs in the themepark-app namespace
+      command: kubectl delete pvc --all -n themepark-app

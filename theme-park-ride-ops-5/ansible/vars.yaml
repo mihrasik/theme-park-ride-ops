@@ -1,0 +1,13 @@
+// filepath: /home/ubuntu/project2/theme-park-ride-ops-5/ansible/vars.yml
+db_host: mariadb
+db_port: 3306
+db_name: themepark
+db_user: themeuser
+db_pass: themedb123
+mysql_root_password: rootpassword
+registry_url: docker.io/myrepo
+themepark_namespace: themepark-app
+argocd_namespace: argocd
+prometheus_port: 9090
+grafana_port: 3000
+app_env: local
