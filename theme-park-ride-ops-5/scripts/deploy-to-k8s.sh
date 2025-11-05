@@ -115,6 +115,13 @@ print_info "Step 3: Importing Docker image to k3d cluster..."
 docker save ride-ops:latest -o /tmp/ride-ops.tar
 docker cp /tmp/ride-ops.tar k3d-themepark-server-0:/tmp/ride-ops.tar
 docker exec k3d-themepark-server-0 ctr images import /tmp/ride-ops.tar
+
+docker cp /tmp/ride-ops.tar k3d-themepark-agent-0:/tmp/ride-ops.tar
+docker exec k3d-themepark-agent-0 ctr images import /tmp/ride-ops.tar
+
+docker cp /tmp/ride-ops.tar k3d-themepark-agent-1:/tmp/ride-ops.tar
+docker exec k3d-themepark-agent-1 ctr images import /tmp/ride-ops.tar
+
 rm -f /tmp/ride-ops.tar
 print_status "Image imported to k3d cluster"
 

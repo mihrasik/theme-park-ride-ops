@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: ride-ops
-        image: ride-ops:latest
-        imagePullPolicy: Never  # Use local image
+        image: ride-ops:latest  # Using local image name
+        imagePullPolicy: Never  # Prevent pulling from registry
         ports:
         - containerPort: 5000
         env:
