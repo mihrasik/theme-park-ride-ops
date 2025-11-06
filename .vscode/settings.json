@@ -1,0 +1,3 @@
+{
+    "github.copilot.terminal.shellCommand": "${workspaceFolder}/scripts/multipass-terminal.sh"
+}
