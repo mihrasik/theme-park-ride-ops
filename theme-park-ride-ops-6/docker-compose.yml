@@ -1,0 +1,48 @@
+docker-compose.yml
+version: '3.8'
+
+services:
+  ride-ops-api:
+    build:
+      context: ./app/ride-ops-api
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    ports:
+      - "8080:8080"
+    networks:
+      - themepark-network
+
+  ride-ops-ui:
+    build:
+      context: ./app/ride-ops-ui
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    networks:
+      - themepark-network
+
+  mariadb:
+    image: mariadb:latest
+    environment:
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
+      - MYSQL_ROOT_PASSWORD=rootpassword
+    ports:
+      - "${DB_PORT}:3306"
+    networks:
+      - themepark-network
+    volumes:
+      - mariadb-data:/var/lib/mysql
+
+networks:
+  themepark-network:
+    driver: bridge
+
+volumes:
+  mariadb-data:

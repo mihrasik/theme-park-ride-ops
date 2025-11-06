@@ -1,0 +1,14 @@
+# templates/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-db-pvc
+  labels:
+    app: {{ .Release.Name }}-db
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size | default "1Gi" }}
+  storageClassName: {{ .Values.persistence.storageClass | default "standard" }}

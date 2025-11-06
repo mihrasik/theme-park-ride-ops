@@ -1,0 +1,38 @@
+/k8s/traefik-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: traefik-ingress
+  namespace: themepark-app
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+spec:
+  rules:
+    - host: your-domain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: service1
+                port:
+                  number: 80
+          - path: /service2
+            pathType: Prefix
+            backend:
+              service:
+                name: service2
+                port:
+                  number: 80
+          - path: /service3
+            pathType: Prefix
+            backend:
+              service:
+                name: service3
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - your-domain.com
+      secretName: tls-secret

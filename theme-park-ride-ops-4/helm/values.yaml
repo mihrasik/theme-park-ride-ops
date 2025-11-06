@@ -1,0 +1,50 @@
+helm/values.yaml
+# This file contains default configuration values for the Helm chart, which can be overridden during deployment.
+
+replicaCount: 3
+
+image:
+  repository: ${REGISTRY_URL}/themepark
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  annotations: {}
+  hosts:
+    - host: themepark.local
+      paths:
+        - /
+  tls: []  # Treated as an array of objects
+
+resources: {}
+  
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+database:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  name: ${DB_NAME}
+  user: ${DB_USER}
+  password: ${DB_PASS}
+
+traefik:
+  enabled: true
+  ingressClassName: traefik
+
+monitoring:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  grafana:
+    enabled: true
+    adminPassword: ${GRAFANA_ADMIN_PASSWORD}

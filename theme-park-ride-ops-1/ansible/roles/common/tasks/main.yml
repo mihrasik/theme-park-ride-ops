@@ -1,0 +1,66 @@
+- name: Install common packages
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+    state: present
+
+- name: Ensure Java is installed
+  apt:
+    name: openjdk-17-jdk
+    state: present
+
+- name: Ensure Maven is installed
+  apt:
+    name: maven
+    state: present
+
+- name: Ensure Docker is installed
+  include_role:
+    name: docker
+
+- name: Ensure Kubernetes is installed
+  include_role:
+    name: kubernetes
+
+- name: Ensure Helm is installed
+  include_role:
+    name: helm
+
+- name: Ensure ArgoCD is installed
+  include_role:
+    name: argocd
+
+- name: Create Kubernetes namespace
+  kubernetes.core.k8s:
+    name: themepark
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Set up RBAC for Kubernetes
+  kubernetes.core.k8s:
+    name: themepark-admin
+    api_version: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    rules:
+      - apiGroups: ["*"]
+        resources: ["*"]
+        verbs: ["*"]
+    state: present
+
+- name: Bind RBAC to the default service account
+  kubernetes.core.k8s:
+    name: themepark-admin-binding
+    api_version: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    role_ref:
+      api_group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: themepark-admin
+    subjects:
+      - kind: ServiceAccount
+        name: default
+        namespace: themepark
+    state: present

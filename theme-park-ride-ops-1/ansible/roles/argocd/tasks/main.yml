@@ -1,0 +1,39 @@
+- name: Install ArgoCD
+  hosts: all
+  tasks:
+    - name: Create namespace for ArgoCD
+      kubernetes.core.k8s:
+        name: argocd
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Install ArgoCD using Helm
+      community.kubernetes.helm:
+        name: argocd
+        chart: argo/argo-cd
+        namespace: argocd
+        values:
+          - server:
+              service:
+                type: LoadBalancer
+        state: present
+
+    - name: Wait for ArgoCD server to be ready
+      kubernetes.core.k8s_info:
+        kind: Service
+        namespace: argocd
+        name: argocd-server
+      register: argocd_service
+
+    - name: Get ArgoCD server external IP
+      wait_for:
+        timeout: 300
+        delay: 10
+        state: started
+        port: 80
+        host: "{{ argocd_service.resources[0].status.loadBalancer.ingress[0].ip }}"
+
+    - name: Print ArgoCD access information
+      debug:
+        msg: "ArgoCD is accessible at http://{{ argocd_service.resources[0].status.loadBalancer.ingress[0].ip }}"

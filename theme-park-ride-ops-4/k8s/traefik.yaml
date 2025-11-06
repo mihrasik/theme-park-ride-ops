@@ -1,0 +1,54 @@
+/k8s/traefik.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik
+  namespace: themepark-app
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+    - port: 443
+      targetPort: 443
+      protocol: TCP
+  selector:
+    app: traefik
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+  namespace: themepark-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+    spec:
+      containers:
+        - name: traefik
+          image: traefik:v2.5
+          args:
+            - "--api.insecure=true"
+            - "--providers.kubernetesingress"
+            - "--entrypoints.web.address=:80"
+            - "--entrypoints.websecure.address=:443"
+          ports:
+            - name: web
+              containerPort: 80
+            - name: websecure
+              containerPort: 443
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+            requests:
+              cpu: "50m"
+              memory: "64Mi"

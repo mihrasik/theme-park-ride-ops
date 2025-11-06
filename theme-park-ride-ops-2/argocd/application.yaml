@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: theme-park-ride-ops
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/mihrasik/theme-park-ride-ops'
+    targetRevision: HEAD
+    path: helm/app1
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: themepark
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  info:
+    - name: Description
+      value: 'ArgoCD application for Theme Park Ride Ops microservices'

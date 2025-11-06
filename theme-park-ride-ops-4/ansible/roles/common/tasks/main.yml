@@ -1,0 +1,48 @@
+/theme-park-ride-ops/theme-park-ride-ops/ansible/roles/common/tasks/main.yml
+---
+- name: Install necessary packages
+  apt:
+    name:
+      - curl
+      - git
+      - vim
+      - python3-pip
+    state: present
+    update_cache: yes
+
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+    update_cache: yes
+
+- name: Ensure Docker service is running
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Install Kubernetes tools
+  apt:
+    name:
+      - kubectl
+      - helm
+    state: present
+    update_cache: yes
+
+- name: Install Python dependencies
+  pip:
+    name:
+      - docker
+      - kubernetes
+    state: present
+
+- name: Create themepark namespace
+  command: kubectl create namespace {{ lookup('env', 'THEMEPARK_NAMESPACE') }}
+  ignore_errors: yes
+
+- name: Ensure required directories exist
+  file:
+    path: /opt/themepark
+    state: directory
+    mode: '0755'

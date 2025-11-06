@@ -1,0 +1,53 @@
+/theme-park-ride-ops/theme-park-ride-ops/ansible/roles/k8s/tasks/main.yml
+---
+- name: Install Kubernetes packages
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    update_cache: yes
+
+- name: Initialize Kubernetes cluster
+  command: kubeadm init --pod-network-cidr=10.244.0.0/16
+  when: ansible_hostname == "master-node"
+
+- name: Set up kubeconfig for the user
+  command: "{{ item }}"
+  with_items:
+    - mkdir -p $HOME/.kube
+    - cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    - chown $(id -u):$(id -g) $HOME/.kube/config
+  when: ansible_hostname == "master-node"
+
+- name: Install Flannel network plugin
+  command: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/k8s-manifests/kube-flannel.yml
+  when: ansible_hostname == "master-node"
+
+- name: Join worker nodes to the cluster
+  command: "{{ item }}"
+  with_items: "{{ hostvars[groups['master'][0]].kubeadm_join_command }}"
+  when: ansible_hostname != "master-node"
+
+- name: Ensure kubectl is installed
+  command: kubectl version --client
+  register: kubectl_version
+  failed_when: kubectl_version.rc != 0
+
+- name: Create namespace for themepark-app
+  kubectl:
+    namespace: themepark-app
+    state: present
+
+- name: Apply Kubernetes manifests
+  kubectl:
+    src: "{{ item }}"
+    state: present
+  with_items:
+    - /path/to/k8s/namespace.yaml
+    - /path/to/k8s/service1-deployment.yaml
+    - /path/to/k8s/service2-deployment.yaml
+    - /path/to/k8s/service3-deployment.yaml
+    - /path/to/k8s/mariadb-statefulset.yaml
+    - /path/to/k8s/traefik-ingress.yaml

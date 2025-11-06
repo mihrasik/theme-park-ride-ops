@@ -1,0 +1,68 @@
+helm/values.yaml
+global:
+  image:
+    repository: ${REGISTRY_URL}/themepark
+    tag: latest
+  namespace: ${THEMEPARK_NAMESPACE}
+
+app1:
+  replicaCount: 3
+  image:
+    repository: ${REGISTRY_URL}/themepark/app1
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    DB_URL: jdbc:mariadb://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    DB_USER: ${DB_USER}
+    DB_PASS: ${DB_PASS}
+
+app2:
+  replicaCount: 3
+  image:
+    repository: ${REGISTRY_URL}/themepark/app2
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8081
+  env:
+    DB_URL: jdbc:mariadb://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    DB_USER: ${DB_USER}
+    DB_PASS: ${DB_PASS}
+
+app3:
+  replicaCount: 3
+  image:
+    repository: ${REGISTRY_URL}/themepark/app3
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8082
+  env:
+    DB_URL: jdbc:mariadb://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    DB_USER: ${DB_USER}
+    DB_PASS: ${DB_PASS}
+
+mariadb:
+  replicaCount: 1
+  image:
+    repository: ${REGISTRY_URL}/themepark/mariadb
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 3306
+  env:
+    MYSQL_DATABASE: ${DB_NAME}
+    MYSQL_USER: ${DB_USER}
+    MYSQL_PASSWORD: ${DB_PASS}
+    MYSQL_ROOT_PASSWORD: ${DB_PASS}
+
+traefik:
+  enabled: true
+  service:
+    enabled: true
+    type: LoadBalancer
+    port: 80
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"

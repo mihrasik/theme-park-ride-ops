@@ -1,0 +1,17 @@
+/theme-park-ride-ops/theme-park-ride-ops/helm/charts/mariadb/Chart.yaml
+apiVersion: v2
+name: mariadb
+description: A Helm chart for deploying MariaDB
+type: application
+version: 1.0.0
+appVersion: "10.5"
+dependencies: []
+maintainers:
+  - name: Your Name
+    email: your.email@example.com
+keywords:
+  - mariadb
+  - database
+  - helm
+  - kubernetes
+```

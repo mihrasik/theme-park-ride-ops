@@ -1,0 +1,63 @@
+/theme-park-ride-ops/theme-park-ride-ops/ansible/roles/common/tasks/main.yml
+---
+- name: Install required packages
+  apt:
+    name:
+      - curl
+      - git
+      - vim
+      - python3-pip
+    state: present
+    update_cache: yes
+
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+
+- name: Ensure Docker is running
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Install kubectl
+  get_url:
+    url: https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+
+- name: Install Helm
+  get_url:
+    url: https://get.helm.sh/helm-v3.8.0-linux-amd64.tar.gz
+    dest: /tmp/helm.tar.gz
+
+- name: Extract Helm
+  unarchive:
+    src: /tmp/helm.tar.gz
+    dest: /tmp
+    remote_src: yes
+
+- name: Move Helm binary to /usr/local/bin
+  command: mv /tmp/linux-amd64/helm /usr/local/bin/helm
+
+- name: Clean up Helm tarball
+  file:
+    path: /tmp/helm.tar.gz
+    state: absent
+
+- name: Clean up Helm extracted files
+  file:
+    path: /tmp/linux-amd64
+    state: absent
+
+- name: Install ArgoCD CLI
+  get_url:
+    url: https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+    dest: /usr/local/bin/argocd
+    mode: '0755'
+
+- name: Ensure ArgoCD CLI is executable
+  file:
+    path: /usr/local/bin/argocd
+    mode: '0755'

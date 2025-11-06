@@ -1,0 +1,76 @@
+/theme-park-ride-ops/theme-park-ride-ops/ansible/playbook.yml
+---
+- hosts: all
+  become: yes
+  vars_files:
+    - ../.env
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - curl
+          - apt-transport-https
+          - ca-certificates
+        state: present
+        update_cache: yes
+
+    - name: Add Kubernetes GPG key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Add Kubernetes APT repository
+      apt_repository:
+        repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present
+
+    - name: Install Kubernetes components
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+
+    - name: Initialize Kubernetes cluster
+      command: kubeadm init --pod-network-cidr=10.244.0.0/16
+      when: inventory_hostname == groups['k8s_master'][0]
+
+    - name: Set up kubeconfig for the user
+      command: "{{ item }}"
+      with_items:
+        - mkdir -p $HOME/.kube
+        - cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        - chown $(id -u):$(id -g) $HOME/.kube/config
+      when: inventory_hostname == groups['k8s_master'][0]
+
+    - name: Install Flannel network plugin
+      command: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/k8s-manifests/kube-flannel.yml
+      when: inventory_hostname == groups['k8s_master'][0]
+
+    - name: Install Helm
+      get_url:
+        url: https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
+        dest: /tmp/helm.tar.gz
+
+    - name: Extract Helm
+      unarchive:
+        src: /tmp/helm.tar.gz
+        dest: /usr/local/bin/
+        remote_src: yes
+
+    - name: Install ArgoCD
+      command: kubectl create namespace {{ ARGOCD_NAMESPACE }}
+      when: inventory_hostname == groups['k8s_master'][0]
+
+    - name: Install ArgoCD using Helm
+      helm:
+        name: argocd
+        chart: argo/argo-cd
+        namespace: {{ ARGOCD_NAMESPACE }}
+        values:
+          server:
+            service:
+              type: LoadBalancer
+      when: inventory_hostname == groups['k8s_master'][0]

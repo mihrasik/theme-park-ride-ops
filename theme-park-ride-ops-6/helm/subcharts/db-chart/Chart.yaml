@@ -1,0 +1,16 @@
+helm/subcharts/db-chart/Chart.yaml
+apiVersion: v2
+name: db-chart
+description: A Helm chart for deploying the MariaDB database
+type: application
+version: 0.1.0
+appVersion: "10.5"
+dependencies: []
+maintainers:
+  - name: Your Name
+    email: your.email@example.com
+keywords:
+  - database
+  - mariadb
+  - helm
+```

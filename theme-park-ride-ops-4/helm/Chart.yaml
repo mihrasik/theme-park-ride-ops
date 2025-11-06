@@ -1,0 +1,6 @@
+theme-park-ride-ops/helm/Chart.yaml
+apiVersion: v2
+name: theme-park-ride-ops
+description: A Helm chart for deploying the Theme Park Ride Ops application
+version: 0.1.0
+appVersion: "1.0"

@@ -1,0 +1,31 @@
+- name: Install Helm
+  hosts: all
+  tasks:
+    - name: Download Helm binary
+      get_url:
+        url: "https://get.helm.sh/helm-v3.8.0-linux-amd64.tar.gz"
+        dest: "/tmp/helm.tar.gz"
+
+    - name: Extract Helm binary
+      unarchive:
+        src: "/tmp/helm.tar.gz"
+        dest: "/usr/local/bin/"
+        remote_src: yes
+
+    - name: Move Helm binary to /usr/local/bin
+      command: mv /usr/local/bin/linux-amd64/helm /usr/local/bin/helm
+      args:
+        removes: /usr/local/bin/linux-amd64/helm
+
+    - name: Ensure Helm is executable
+      file:
+        path: /usr/local/bin/helm
+        mode: '0755'
+
+    - name: Initialize Helm
+      command: helm repo add stable https://charts.helm.sh/stable
+      args:
+        creates: /home/{{ ansible_user }}/.config/helm/repositories.yaml
+
+    - name: Update Helm repositories
+      command: helm repo update

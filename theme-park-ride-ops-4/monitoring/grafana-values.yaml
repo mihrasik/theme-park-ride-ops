@@ -1,0 +1,43 @@
+monitoring/grafana-values.yaml
+apiVersion: v1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    jsonData:
+      tlsSkipVerify: true
+      httpMethod: POST
+    secureJsonData:
+      basicAuthUser: ${DB_USER}
+      basicAuthPassword: ${DB_PASS}
+grafana:
+  admin:
+    existingSecret: grafana-admin
+  service:
+    enabled: true
+    type: ClusterIP
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: standard
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      path: /var/lib/grafana/dashboards
+  dashboards:
+    default:
+      example-dashboard:
+        json: |
+          {
+            "title": "Example Dashboard",
+            "panels": []
+          }

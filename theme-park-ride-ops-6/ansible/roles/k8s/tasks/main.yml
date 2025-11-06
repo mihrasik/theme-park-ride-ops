@@ -1,0 +1,58 @@
+/theme-park-ride-ops/theme-park-ride-ops/ansible/roles/k8s/tasks/main.yml
+---
+- name: Install Kubernetes packages
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    update_cache: yes
+
+- name: Initialize Kubernetes cluster
+  command: kubeadm init
+  when: ansible_hostname == "master-node"
+
+- name: Set up kubeconfig for the user
+  command: "{{ item }}"
+  with_items:
+    - mkdir -p $HOME/.kube
+    - cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    - chown $(id -u):$(id -g) $HOME/.kube/config
+  when: ansible_hostname == "master-node"
+
+- name: Install network plugin (Weave Net)
+  command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+  when: ansible_hostname == "master-node"
+
+- name: Join worker nodes to the cluster
+  command: "{{ hostvars[item].join_command }}"
+  with_items: "{{ groups['worker'] }}"
+  when: ansible_hostname == "master-node"
+
+- name: Create namespace for theme park application
+  kubernetes.core.k8s:
+    name: themepark-app
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Deploy MariaDB
+  kubernetes.core.k8s:
+    src: ../../k8s/mariadb/mariadb-deployment.yaml
+    state: present
+
+- name: Deploy application
+  kubernetes.core.k8s:
+    src: ../../k8s/app/app-deployment.yaml
+    state: present
+
+- name: Deploy services
+  kubernetes.core.k8s:
+    src: ../../k8s/app/app-service.yaml
+    state: present
+
+- name: Deploy ingress
+  kubernetes.core.k8s:
+    src: ../../k8s/app/ingress.yaml
+    state: present

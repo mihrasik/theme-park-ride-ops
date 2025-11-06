@@ -1,0 +1,30 @@
+# /app/ride-ops-api/src/main/resources/application.yml
+spring:
+  datasource:
+    url: jdbc:mariadb://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  server:
+    port: 8080
+  application:
+    name: ride-ops-api
+
+logging:
+  level:
+    root: INFO
+    com.themepark.rideops: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+
+# Additional configurations can be added here

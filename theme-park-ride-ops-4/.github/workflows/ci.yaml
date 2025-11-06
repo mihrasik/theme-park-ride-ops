@@ -1,0 +1,59 @@
+.theme-park-ride-ops/theme-park-ride-ops/.github/workflows/ci.yaml
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Build Docker images
+        run: |
+          docker build -t ${{ secrets.REGISTRY_URL }}/service1:latest ./app/service1
+          docker build -t ${{ secrets.REGISTRY_URL }}/service2:latest ./app/service2
+          docker build -t ${{ secrets.REGISTRY_URL }}/service3:latest ./app/service3
+          docker build -t ${{ secrets.REGISTRY_URL }}/mariadb:latest ./app/mariadb
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Push Docker images
+        run: |
+          docker push ${{ secrets.REGISTRY_URL }}/service1:latest
+          docker push ${{ secrets.REGISTRY_URL }}/service2:latest
+          docker push ${{ secrets.REGISTRY_URL }}/service3:latest
+          docker push ${{ secrets.REGISTRY_URL }}/mariadb:latest
+
+      - name: Update Helm values
+        run: |
+          sed -i "s/tag: .*/tag: latest/" helm/values.yaml
+
+      - name: Commit updated Helm values
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add helm/values.yaml
+          git commit -m "Update Helm values with new image tags"
+          git push
+
+      - name: Trigger ArgoCD sync
+        run: |
+          argocd app sync themepark-app --auth-token ${{ secrets.ARGOCD_AUTH_TOKEN }}

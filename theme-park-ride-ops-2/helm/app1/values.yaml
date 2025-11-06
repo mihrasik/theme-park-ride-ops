@@ -1,0 +1,45 @@
+apiVersion: v1
+appVersion: "1.0"
+description: A Helm chart for Kubernetes deployment of App1
+name: app1
+version: 0.1.0
+
+# Default values for app1.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: your-docker-repo/app1
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  enabled: true
+  name: default
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+ingress:
+  enabled: false
+  name: ""
+  path: /
+  pathType: ImplementationSpecific
+  hosts:
+    - host: chart-example.local
+      paths:
+        - /
+  tls: []  # Treated as an array of objects
+
+resources: {}
+# We usually recommend not to specify default resources and to leave this as an empty object.
+# This allows the user to define resources themselves.
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

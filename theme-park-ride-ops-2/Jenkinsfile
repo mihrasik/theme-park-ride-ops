@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE_APP1 = 'your-docker-repo/app1:latest'
+        DOCKER_IMAGE_APP2 = 'your-docker-repo/app2:latest'
+        DOCKER_IMAGE_APP3 = 'your-docker-repo/app3:latest'
+        REGISTRY_CREDENTIALS = 'docker-registry-credentials'
+    }
+
+    stages {
+        stage('Build') {
+            parallel {
+                stage('Build App1') {
+                    steps {
+                        dir('src/app1') {
+                            script {
+                                sh './gradlew build'
+                                sh "docker build -t ${DOCKER_IMAGE_APP1} ."
+                            }
+                        }
+                    }
+                }
+                stage('Build App2') {
+                    steps {
+                        dir('src/app2') {
+                            script {
+                                sh './gradlew build'
+                                sh "docker build -t ${DOCKER_IMAGE_APP2} ."
+                            }
+                        }
+                    }
+                }
+                stage('Build App3') {
+                    steps {
+                        dir('src/app3') {
+                            script {
+                                sh './gradlew build'
+                                sh "docker build -t ${DOCKER_IMAGE_APP3} ."
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIALS, usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                        sh "echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin"
+                        sh "docker push ${DOCKER_IMAGE_APP1}"
+                        sh "docker push ${DOCKER_IMAGE_APP2}"
+                        sh "docker push ${DOCKER_IMAGE_APP3}"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    // Add deployment steps here, e.g., Helm upgrade or kubectl apply
+                    sh "helm upgrade --install app1 helm/app1 --values helm/app1/values.yaml"
+                    sh "helm upgrade --install app2 helm/app2 --values helm/app2/values.yaml"
+                    sh "helm upgrade --install app3 helm/app3 --values helm/app3/values.yaml"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}

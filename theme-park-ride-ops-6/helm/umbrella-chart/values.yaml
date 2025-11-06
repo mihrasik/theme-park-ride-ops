@@ -1,0 +1,47 @@
+helm/umbrella-chart/values.yaml
+# This file contains default configuration values for the umbrella Helm chart.
+
+app:
+  replicaCount: 3
+  image:
+    repository: ${REGISTRY_URL}/ride-ops-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  ingress:
+    enabled: true
+    annotations: {}
+    pathType: Prefix
+    paths:
+      - /
+    host: rideops.example.com
+    tls: []
+  
+db:
+  image:
+    repository: mariadb
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3306
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+
+global:
+  imagePullSecrets: []
+  storageClass: "standard"
+
+resources: {}
+  
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

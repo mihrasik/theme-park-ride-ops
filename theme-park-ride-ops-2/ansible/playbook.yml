@@ -1,0 +1,68 @@
+---
+- name: Install and configure required tools
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Install Kubernetes tools
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - kubectl
+        - kubelet
+        - kubeadm
+
+    - name: Install Helm
+      shell: |
+        curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3.sh | bash
+
+    - name: Install Ansible
+      apt:
+        name: ansible
+        state: present
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Initialize Kubernetes cluster
+      command: kubeadm init
+      when: ansible_hostname == "master"
+
+    - name: Set up kubeconfig for the user
+      command: "{{ item }}"
+      loop:
+        - mkdir -p $HOME/.kube
+        - cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        - chown $(id -u):$(id -g) $HOME/.kube/config
+      when: ansible_hostname == "master"
+
+    - name: Install Calico network plugin
+      command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      when: ansible_hostname == "master"
+
+    - name: Install ArgoCD
+      command: kubectl create namespace argocd
+      when: ansible_hostname == "master"
+
+    - name: Install ArgoCD server
+      command: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+      when: ansible_hostname == "master"
+
+    - name: Wait for ArgoCD server to be ready
+      command: kubectl wait --for=condition=available --timeout=600s deployment/argocd-server -n argocd
+
+    - name: Print ArgoCD server URL
+      debug:
+        msg: "ArgoCD server is available at: https://{{ ansible_hostname }}:8080"

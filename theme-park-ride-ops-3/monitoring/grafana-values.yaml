@@ -1,0 +1,80 @@
+monitoring/grafana-values.yaml
+apiVersion: v1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      tlsSkipVerify: true
+      timeInterval: "5s"
+      keepCookies: true
+      auth:
+        basic:
+          enabled: false
+      tlsAuth: false
+      tlsAuthWithCACert: false
+      caCert: ""
+      clientCert: ""
+      clientKey: ""
+      server: ""
+      basicAuth: false
+      basicAuthUser: ""
+      basicAuthPassword: ""
+      withCredentials: false
+    secureJsonData:
+      basicAuthPassword: ""
+      basicAuthUser: ""
+      tlsCACert: ""
+      tlsClientCert: ""
+      tlsClientKey: ""
+  - name: MySQL
+    type: mysql
+    access: proxy
+    url: mariadb:3306
+    jsonData:
+      tlsSkipVerify: true
+      auth:
+        basic:
+          enabled: false
+    secureJsonData:
+      password: ${DB_PASS}
+      user: ${DB_USER}
+grafana:
+  admin:
+    existingSecret: grafana-admin
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 3000
+    annotations: {}
+  persistence:
+    enabled: true
+    storageClassName: "standard"
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 10
+          options:
+            path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      my-dashboard:
+        json: |
+          {
+            "title": "My Dashboard",
+            "panels": [],
+            "schemaVersion": 26,
+            "version": 1
+          }

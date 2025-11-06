@@ -1,0 +1,42 @@
+k8s/service1-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service1
+  namespace: themepark-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: service1
+  template:
+    metadata:
+      labels:
+        app: service1
+    spec:
+      containers:
+        - name: service1
+          image: ${REGISTRY_URL}/service1:${IMAGE_TAG}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              value: ${DB_HOST}
+            - name: DB_PORT
+              value: "${DB_PORT}"
+            - name: DB_NAME
+              value: ${DB_NAME}
+            - name: DB_USER
+              value: ${DB_USER}
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "500m"
+            limits:
+              memory: "512Mi"
+              cpu: "1"

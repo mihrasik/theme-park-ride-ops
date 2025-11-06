@@ -1,0 +1,35 @@
+{
+  "name": "theme-park-ride-ops",
+  "version": "1.0.0",
+  "description": "A Spring Boot microservices system for managing theme park ride operations.",
+  "main": "index.js",
+  "scripts": {
+    "build": "gradle build",
+    "start": "java -jar build/libs/*.jar",
+    "test": "gradle test",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down"
+  },
+  "dependencies": {
+    "spring-boot-starter": "^2.5.4",
+    "spring-boot-starter-data-jpa": "^2.5.4",
+    "spring-boot-starter-web": "^2.5.4",
+    "mariadb-java-client": "^2.7.3"
+  },
+  "devDependencies": {
+    "docker-compose": "^1.29.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mihrasik/theme-park-ride-ops.git"
+  },
+  "keywords": [
+    "spring-boot",
+    "microservices",
+    "kubernetes",
+    "devops"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

@@ -1,0 +1,33 @@
+replicaCount: 1
+
+image:
+  repository: your-docker-repo/app2
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  enabled: true
+  name: app2
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+ingress:
+  enabled: false
+  name: ""
+  path: /
+  pathType: ImplementationSpecific
+  hosts:
+    - host: chart-example.local
+      paths:
+        - /
+  tls: [] 
+
+resources: {}
+  
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

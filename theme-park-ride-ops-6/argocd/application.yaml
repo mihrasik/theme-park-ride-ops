@@ -1,0 +1,31 @@
+argocd/application.yaml
+# argocd/application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: theme-park-ride-ops
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/mihrasik/theme-park-ride-ops'
+    targetRevision: HEAD
+    path: helm/umbrella-chart
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: themepark-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncWindow:
+      schedule: '* * * * *'
+      duration: 1h
+  helm:
+    parameters:
+      - name: db.url
+        value: ${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - name: db.user
+        value: ${DB_USER}
+      - name: db.password
+        value: ${DB_PASS}

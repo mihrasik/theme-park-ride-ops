@@ -1,0 +1,57 @@
+/theme-park-ride-ops/theme-park-ride-ops/ansible/roles/common/tasks/main.yml
+---
+- name: Install necessary packages
+  apt:
+    name:
+      - curl
+      - git
+      - vim
+      - python3-pip
+    state: present
+    update_cache: yes
+
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+
+- name: Ensure Docker service is running
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Install Kubernetes tools
+  apt:
+    name:
+      - kubectl
+      - helm
+    state: present
+
+- name: Install Python dependencies
+  pip:
+    name:
+      - docker
+      - kubernetes
+    state: present
+
+- name: Add user to Docker group
+  user:
+    name: "{{ ansible_user }}"
+    group: docker
+    append: yes
+
+- name: Ensure required directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /etc/kubernetes
+    - /etc/helm
+    - /var/lib/helm
+
+- name: Clean up old packages
+  apt:
+    autoremove: yes
+    purge: yes
+    state: present

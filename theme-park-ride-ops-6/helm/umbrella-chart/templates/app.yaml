@@ -1,0 +1,51 @@
+# helm/umbrella-chart/templates/app.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ride-ops-api
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.app.replicas }}
+  selector:
+    matchLabels:
+      app: ride-ops-api
+  template:
+    metadata:
+      labels:
+        app: ride-ops-api
+    spec:
+      containers:
+        - name: ride-ops-api
+          image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              value: {{ .Values.db.host }}
+            - name: DB_PORT
+              value: {{ .Values.db.port | quote }}
+            - name: DB_NAME
+              value: {{ .Values.db.name }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-user-secret
+                  key: username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: db-pass-secret
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ride-ops-api
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: ride-ops-api
