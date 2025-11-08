@@ -5,6 +5,15 @@ This runbook provides operational procedures and guidelines for managing the The
 
 ## Deployment Procedures
 
+
+cd /home/ubuntu/theme-park-ride-ops
+upper_folders/scripts/install_ansible.sh
+
+
+cd /home/ubuntu/theme-park-ride-ops/upper_folders/scripts/
+
+ansible-playbook ansible_playbook_devops_tools.yml
+
 ### Prerequisites
 - Ensure that the `.env` file is configured with the correct environment variables.
 - Verify that the Kubernetes cluster is up and running.
