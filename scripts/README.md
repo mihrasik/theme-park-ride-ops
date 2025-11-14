@@ -1,13 +1,27 @@
-# Theme Park Ride Ops - Kubernetes Scripts
+# 🎢🎠🎡 Theme Park Ride Ops - Scripts 🎡🎠🎢
 
-This directory contains automation scripts for deploying and managing the Theme Park Ride Operations application on Kubernetes.
+Welcome to the magical world of Theme Park Ride Operations! This directory contains all the scripts needed to build, deploy, and manage your theme park application.
 
-## 🚀 Quick Start
+## 🎪 Available Scripts
 
-To deploy the entire application to Kubernetes with a single command:
-
+### 🎢 Environment Setup
 ```bash
-./scripts/deploy-k8s.sh
+# Set up your magical workspace
+./scripts/setup-env.sh
+```
+**What it does:** Configures all environment variables and paths automatically. No more hardcoded paths!
+
+### 🎠 Multi-Architecture Build
+```bash
+# Build for all platforms
+./scripts/build-multiarch.sh
+
+# Build locally for testing
+./scripts/build-multiarch.sh --local --test
+
+# Build with custom tag
+./scripts/build-multiarch.sh v1.2.3
+```
 ```
 
 To test the API endpoints:

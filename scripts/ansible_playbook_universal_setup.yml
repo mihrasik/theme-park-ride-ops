@@ -1,0 +1,269 @@
+---
+- name: Theme Park Ride Ops - Universal DevOps Setup
+  hosts: localhost
+  become: yes
+  vars:
+    # Dynamic path detection
+    project_root: "{{ playbook_dir | dirname }}"
+    terraform_version: "{{ terraform_ver | default('1.5.7') }}"
+    k3d_version: "{{ k3d_ver | default('5.8.3') }}"
+    docker_compose_version: "{{ compose_ver | default('2.23.0') }}"
+    kubectl_version: "{{ kubectl_ver | default('v1.28.0') }}"
+    
+  tasks:
+    - name: Detect OS family
+      set_fact:
+        os_family: "{{ ansible_os_family }}"
+        architecture: "{{ ansible_architecture }}"
+
+    - name: Print system information
+      debug:
+        msg: "Setting up DevOps tools on {{ os_family }} {{ architecture }}"
+
+    # ============ LINUX SETUP ============
+    - block:
+        - name: Update apt cache (Debian/Ubuntu)
+          apt:
+            update_cache: yes
+          when: ansible_os_family == "Debian"
+
+        - name: Update yum cache (RedHat/CentOS)
+          yum:
+            update_cache: yes
+          when: ansible_os_family == "RedHat"
+
+        - name: Install base packages (Debian/Ubuntu)
+          apt:
+            name:
+              - curl
+              - wget
+              - unzip
+              - gnupg
+              - software-properties-common
+              - ca-certificates
+              - lsb-release
+            state: present
+          when: ansible_os_family == "Debian"
+
+        - name: Install base packages (RedHat/CentOS)
+          yum:
+            name:
+              - curl
+              - wget
+              - unzip
+              - yum-utils
+              - device-mapper-persistent-data
+              - lvm2
+            state: present
+          when: ansible_os_family == "RedHat"
+
+        - name: Add Docker GPG key (Debian/Ubuntu)
+          apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
+          when: ansible_os_family == "Debian"
+
+        - name: Add Docker repository (Debian/Ubuntu)
+          apt_repository:
+            repo: "deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            state: present
+          when: ansible_os_family == "Debian"
+
+        - name: Add Docker repository (RedHat/CentOS)
+          yum_repository:
+            name: docker
+            description: Docker CE Repository
+            baseurl: "https://download.docker.com/linux/centos/7/{{ 'x86_64' if ansible_architecture == 'x86_64' else 'aarch64' }}/stable"
+            gpgcheck: yes
+            gpgkey: https://download.docker.com/linux/centos/gpg
+          when: ansible_os_family == "RedHat"
+
+        - name: Install Docker (Linux)
+          package:
+            name: 
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+            state: present
+
+        - name: Start and enable Docker
+          systemd:
+            name: docker
+            state: started
+            enabled: yes
+
+        - name: Add current user to docker group
+          user:
+            name: "{{ ansible_user_id }}"
+            groups: docker
+            append: yes
+
+      when: ansible_os_family in ["Debian", "RedHat"]
+
+    # ============ MACOS SETUP ============
+    - block:
+        - name: Check if Homebrew is installed
+          stat:
+            path: /opt/homebrew/bin/brew
+          register: homebrew_check
+          when: ansible_architecture == "arm64"
+
+        - name: Check if Homebrew is installed (Intel)
+          stat:
+            path: /usr/local/bin/brew
+          register: homebrew_check_intel
+          when: ansible_architecture == "x86_64"
+
+        - name: Install Homebrew (ARM64)
+          shell: |
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          when: ansible_architecture == "arm64" and not homebrew_check.stat.exists
+          become: no
+
+        - name: Install Homebrew (Intel)
+          shell: |
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          when: ansible_architecture == "x86_64" and not homebrew_check_intel.stat.exists
+          become: no
+
+        - name: Install Docker Desktop (macOS)
+          homebrew_cask:
+            name: docker
+            state: present
+          become: no
+
+        - name: Install tools via Homebrew
+          homebrew:
+            name:
+              - curl
+              - wget
+              - unzip
+            state: present
+          become: no
+
+      when: ansible_os_family == "Darwin"
+
+    # ============ UNIVERSAL TOOLS ============
+    - name: Create temp directory
+      file:
+        path: /tmp/devops-install
+        state: directory
+        mode: '0755'
+
+    # ============ TERRAFORM INSTALLATION ============
+    - name: Install Terraform via Homebrew (macOS)
+      homebrew:
+        name: terraform
+        state: present
+      become: no
+      when: ansible_os_family == "Darwin"
+
+    - name: Download Terraform (Linux)
+      get_url:
+        url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.zip"
+        dest: /tmp/devops-install/terraform.zip
+        mode: '0644'
+        validate_certs: no
+      when: ansible_os_family != "Darwin"
+
+    - name: Extract Terraform (Linux)
+      unarchive:
+        src: /tmp/devops-install/terraform.zip
+        dest: /usr/local/bin/
+        remote_src: yes
+        mode: '0755'
+        creates: /usr/local/bin/terraform
+      when: ansible_os_family != "Darwin"
+
+    # ============ K3D INSTALLATION ============
+    - name: Install k3d via Homebrew (macOS)
+      homebrew:
+        name: k3d
+        state: present
+      become: no
+      when: ansible_os_family == "Darwin"
+
+    - name: Download k3d install script (Linux)
+      get_url:
+        url: "https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh"
+        dest: /tmp/devops-install/install_k3d.sh
+        mode: '0755'
+        validate_certs: no
+      when: ansible_os_family != "Darwin"
+
+    - name: Install k3d (Linux)
+      command:
+        cmd: "/tmp/devops-install/install_k3d.sh"
+        creates: /usr/local/bin/k3d
+      when: ansible_os_family != "Darwin"
+
+    # ============ DOCKER COMPOSE INSTALLATION ============
+    - name: Install docker-compose via Homebrew (macOS)
+      homebrew:
+        name: docker-compose
+        state: present
+      become: no
+      when: ansible_os_family == "Darwin"
+
+    - name: Download Docker Compose (Linux)
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/v{{ docker_compose_version }}/docker-compose-linux-{{ 'x86_64' if ansible_architecture == 'x86_64' else 'aarch64' }}"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+        validate_certs: no
+      when: ansible_os_family != "Darwin"
+
+    # ============ JAVA SETUP ============
+    - name: Install Java (Linux - Debian)
+      apt:
+        name: openjdk-11-jdk
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Java (Linux - RedHat)
+      yum:
+        name: java-11-openjdk-devel
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Install Java (macOS)
+      homebrew:
+        name: openjdk@11
+        state: present
+      become: no
+      when: ansible_os_family == "Darwin"
+
+    # ============ CLEANUP ============
+    - name: Clean up temp files
+      file:
+        path: /tmp/devops-install
+        state: absent
+
+    # ============ VERIFICATION ============
+    - name: Verify installations
+      command: "{{ item }} --version"
+      register: version_checks
+      loop:
+        - docker
+        - terraform
+        - k3d
+      failed_when: false
+      changed_when: false
+
+    - name: Display installation results
+      debug:
+        msg: "{{ item.cmd[0] }}: {{ 'INSTALLED' if item.rc == 0 else 'FAILED' }}"
+      loop: "{{ version_checks.results }}"
+
+    - name: Setup complete
+      debug:
+        msg: |
+          DevOps environment setup completed successfully.
+          All required tools have been installed and configured.
+          The system is ready for deployment operations.
+
+  handlers:
+    - name: Restart Docker service
+      systemd:
+        name: docker
+        state: restarted

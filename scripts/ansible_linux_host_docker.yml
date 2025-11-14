@@ -1,0 +1,230 @@
+---
+- name: Theme Park Ride Ops - Linux Environment (Docker Host Mode)
+  hosts: localhost
+  become: yes
+  vars:
+    # Dynamic path detection
+    project_root: "{{ playbook_dir | dirname }}"
+    terraform_version: "{{ terraform_ver | default('1.5.7') }}"
+    k3d_version: "{{ k3d_ver | default('5.8.3') }}"
+    kubectl_version: "{{ kubectl_ver | default('v1.28.0') }}"
+    # Force Linux architecture detection
+    target_arch: "{{ 'amd64' if ansible_architecture in ['x86_64', 'amd64'] else 'arm64' }}"
+    # Docker host mode - use external Docker
+    use_host_docker: true
+    
+  tasks:
+    - name: Print environment information
+      debug:
+        msg: |
+          Setting up DevOps tools for Linux {{ target_arch }} environment
+          Docker mode: Using host Docker (no Docker installation)
+
+    # ============ DETECT PACKAGE MANAGER ============
+    - name: Detect package manager
+      set_fact:
+        pkg_manager: "{{ 'apt' if ansible_os_family == 'Debian' else 'yum' if ansible_os_family == 'RedHat' else 'unknown' }}"
+
+    - name: Fail if unsupported OS
+      fail:
+        msg: "Unsupported OS family: {{ ansible_os_family }}. This playbook supports Debian/Ubuntu and RedHat/CentOS only."
+      when: pkg_manager == "unknown"
+
+    # ============ SYSTEM PREPARATION ============
+    - name: Update package cache (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+        cache_valid_time: 600
+      when: pkg_manager == "apt"
+
+    - name: Update package cache (RedHat/CentOS)
+      yum:
+        update_cache: yes
+      when: pkg_manager == "yum"
+
+    - name: Install base packages (Debian/Ubuntu)
+      apt:
+        name:
+          - curl
+          - wget
+          - unzip
+          - gnupg
+          - software-properties-common
+          - ca-certificates
+          - lsb-release
+          - apt-transport-https
+          - python3-pip
+          - git
+          - vim
+          - htop
+        state: present
+      when: pkg_manager == "apt"
+
+    - name: Install base packages (RedHat/CentOS)
+      yum:
+        name:
+          - curl
+          - wget
+          - unzip
+          - yum-utils
+          - python3-pip
+          - git
+          - vim
+          - htop
+        state: present
+      when: pkg_manager == "yum"
+
+    # ============ DOCKER CLIENT ONLY ============
+    - name: Install Docker CLI only (Debian/Ubuntu)
+      apt:
+        name:
+          - docker.io
+        state: present
+      when: pkg_manager == "apt" and use_host_docker
+
+    - name: Install Docker CLI only (RedHat/CentOS)
+      yum:
+        name:
+          - docker
+        state: present
+      when: pkg_manager == "yum" and use_host_docker
+
+    - name: Add user to docker group (for host Docker access)
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: yes
+      when: use_host_docker
+
+    # ============ CREATE INSTALL DIRECTORY ============
+    - name: Create installation directory
+      file:
+        path: /tmp/devops-install
+        state: directory
+        mode: '0755'
+
+    # ============ TERRAFORM INSTALLATION ============
+    - name: Download Terraform
+      get_url:
+        url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_{{ target_arch }}.zip"
+        dest: /tmp/devops-install/terraform.zip
+        mode: '0644'
+
+    - name: Extract and install Terraform
+      unarchive:
+        src: /tmp/devops-install/terraform.zip
+        dest: /usr/local/bin/
+        remote_src: yes
+        creates: /usr/local/bin/terraform
+        mode: '0755'
+
+    # ============ KUBECTL INSTALLATION ============
+    - name: Download kubectl
+      get_url:
+        url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/{{ target_arch }}/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+
+    # ============ K3D INSTALLATION ============
+    - name: Download k3d install script
+      get_url:
+        url: "https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh"
+        dest: /tmp/devops-install/install_k3d.sh
+        mode: '0755'
+
+    - name: Install k3d
+      command:
+        cmd: "/tmp/devops-install/install_k3d.sh"
+        creates: /usr/local/bin/k3d
+
+    # ============ HELM INSTALLATION ============
+    - name: Download Helm install script
+      get_url:
+        url: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+        dest: /tmp/devops-install/install_helm.sh
+        mode: '0755'
+
+    - name: Install Helm
+      command:
+        cmd: "/tmp/devops-install/install_helm.sh"
+        creates: /usr/local/bin/helm
+
+    # ============ JAVA INSTALLATION ============
+    - name: Install OpenJDK 11 (Debian/Ubuntu)
+      apt:
+        name: openjdk-11-jdk
+        state: present
+      when: pkg_manager == "apt"
+
+    - name: Install OpenJDK 11 (RedHat/CentOS)
+      yum:
+        name: java-11-openjdk-devel
+        state: present
+      when: pkg_manager == "yum"
+
+    # ============ DEVELOPMENT TOOLS ============
+    - name: Install development tools (Debian/Ubuntu)
+      apt:
+        name:
+          - build-essential
+          - make
+          - gcc
+        state: present
+      when: pkg_manager == "apt"
+
+    - name: Install development tools (RedHat/CentOS)
+      yum:
+        name:
+          - gcc
+          - make
+          - which
+        state: present
+      when: pkg_manager == "yum"
+
+    # ============ CLEANUP ============
+    - name: Clean up installation files
+      file:
+        path: /tmp/devops-install
+        state: absent
+
+    # ============ VERIFICATION ============
+    - name: Verify tool installations
+      command: "{{ item }} --version"
+      register: version_checks
+      loop:
+        - terraform
+        - kubectl
+        - k3d
+        - helm
+        - java
+      failed_when: false
+      changed_when: false
+
+    - name: Display installation results
+      debug:
+        msg: "{{ item.cmd[0] }}: {{ 'INSTALLED' if item.rc == 0 else 'FAILED' }}"
+      loop: "{{ version_checks.results }}"
+
+    - name: Check Docker CLI (should use host Docker)
+      command: docker --version
+      register: docker_version
+      failed_when: false
+      changed_when: false
+
+    - name: Show Docker status
+      debug:
+        msg: "Docker CLI: {{ 'AVAILABLE (using host Docker)' if docker_version.rc == 0 else 'NOT AVAILABLE' }}"
+
+    - name: Installation summary
+      debug:
+        msg: |
+          Linux DevOps environment setup completed.
+          Target architecture: {{ target_arch }}
+          Package manager: {{ pkg_manager }}
+          Docker mode: Using host Docker from macOS
+          All development tools installed in Linux environment.
+
+  handlers:
+    - name: Note about Docker
+      debug:
+        msg: "Docker daemon runs on host (macOS), CLI available in Linux environment"

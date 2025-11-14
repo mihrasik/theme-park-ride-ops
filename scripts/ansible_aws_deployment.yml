@@ -1,0 +1,337 @@
+---
+- name: AWS EC2 DevOps Setup for Theme Park Ride Ops
+  hosts: all
+  become: yes
+  vars:
+    # Application configuration
+    app_name: "theme-park-ride-ops"
+    app_version: "{{ version | default('latest') }}"
+    docker_registry: "{{ registry | default('docker.io/themepark') }}"
+    
+    # Database configuration
+    db_host: "{{ database_host | default('localhost') }}"
+    db_name: "{{ database_name | default('themepark') }}"
+    db_user: "{{ database_user | default('themeuser') }}"
+    db_password: "{{ database_password | default('themedb123') }}"
+    
+    # Kubernetes configuration
+    k8s_namespace: "{{ namespace | default('themepark-app') }}"
+    cluster_name: "{{ cluster_name | default('themepark-cluster') }}"
+
+  tasks:
+    - name: Print deployment information
+      debug:
+        msg: |
+          Deploying {{ app_name }}:{{ app_version }}
+          Target: {{ inventory_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Architecture: {{ ansible_architecture }}
+
+    # ===== SYSTEM PREPARATION =====
+    - name: Update package cache (Ubuntu/Debian)
+      apt:
+        update_cache: yes
+        cache_valid_time: 600
+      when: ansible_os_family == "Debian"
+
+    - name: Update package cache (Amazon Linux/RHEL)
+      yum:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Install essential packages (Ubuntu/Debian)
+      apt:
+        name:
+          - curl
+          - wget
+          - unzip
+          - gnupg
+          - software-properties-common
+          - ca-certificates
+          - lsb-release
+          - apt-transport-https
+          - python3-pip
+          - git
+          - htop
+          - vim
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install essential packages (Amazon Linux/RHEL)
+      yum:
+        name:
+          - curl
+          - wget
+          - unzip
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+          - python3-pip
+          - git
+          - htop
+          - vim
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    # ===== DOCKER INSTALLATION =====
+    - name: Add Docker GPG key (Ubuntu/Debian)
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker repository (Ubuntu/Debian)
+      apt_repository:
+        repo: "deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Docker (Ubuntu/Debian)
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Docker (Amazon Linux 2)
+      yum:
+        name: docker
+        state: present
+      when: ansible_distribution == "Amazon" and ansible_distribution_major_version == "2"
+
+    - name: Install Docker (RHEL/CentOS)
+      block:
+        - name: Add Docker CE repository
+          yum_repository:
+            name: docker-ce-stable
+            description: Docker CE Stable - $basearch
+            baseurl: "https://download.docker.com/linux/centos/7/{{ 'x86_64' if ansible_architecture == 'x86_64' else 'aarch64' }}/stable"
+            gpgcheck: yes
+            gpgkey: https://download.docker.com/linux/centos/gpg
+            enabled: yes
+
+        - name: Install Docker CE
+          yum:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+            state: present
+      when: ansible_os_family == "RedHat" and ansible_distribution != "Amazon"
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ec2-user to docker group (Amazon Linux)
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+      when: ansible_distribution == "Amazon"
+
+    - name: Add ubuntu user to docker group (Ubuntu)
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+      when: ansible_distribution == "Ubuntu"
+
+    # ===== KUBERNETES TOOLS =====
+    - name: Download and install kubectl
+      get_url:
+        url: "https://dl.k8s.io/release/{{ kubectl_version | default('v1.28.0') }}/bin/linux/{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+
+    - name: Download and install k3d
+      shell: |
+        curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+      args:
+        creates: /usr/local/bin/k3d
+
+    - name: Download and install Helm
+      shell: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      args:
+        creates: /usr/local/bin/helm
+
+    # ===== TERRAFORM INSTALLATION =====
+    - name: Download Terraform
+      get_url:
+        url: "https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.zip"
+        dest: /tmp/terraform.zip
+        mode: '0644'
+
+    - name: Extract and install Terraform
+      unarchive:
+        src: /tmp/terraform.zip
+        dest: /usr/local/bin/
+        remote_src: yes
+        creates: /usr/local/bin/terraform
+        mode: '0755'
+
+    # ===== JAVA INSTALLATION =====
+    - name: Install OpenJDK 11 (Ubuntu/Debian)
+      apt:
+        name: openjdk-11-jdk
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install OpenJDK 11 (Amazon Linux/RHEL)
+      yum:
+        name: java-11-openjdk-devel
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    # ===== APPLICATION DEPLOYMENT PREPARATION =====
+    - name: Create application directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /opt/{{ app_name }}
+        - /opt/{{ app_name }}/config
+        - /opt/{{ app_name }}/logs
+        - /opt/{{ app_name }}/data
+
+    - name: Create application user
+      user:
+        name: "{{ app_name }}"
+        system: yes
+        shell: /bin/bash
+        home: /opt/{{ app_name }}
+        createhome: no
+
+    - name: Set ownership of application directories
+      file:
+        path: /opt/{{ app_name }}
+        owner: "{{ app_name }}"
+        group: "{{ app_name }}"
+        recurse: yes
+
+    # ===== DOCKER COMPOSE SETUP =====
+    - name: Create Docker Compose file for application
+      template:
+        src: docker-compose.yml.j2
+        dest: /opt/{{ app_name }}/docker-compose.yml
+        owner: "{{ app_name }}"
+        group: "{{ app_name }}"
+        mode: '0644'
+      notify: restart application
+
+    - name: Create environment file
+      template:
+        src: .env.j2
+        dest: /opt/{{ app_name }}/.env
+        owner: "{{ app_name }}"
+        group: "{{ app_name }}"
+        mode: '0600'
+      notify: restart application
+
+    # ===== SYSTEMD SERVICE =====
+    - name: Create systemd service file
+      template:
+        src: theme-park-ride-ops.service.j2
+        dest: /etc/systemd/system/{{ app_name }}.service
+        mode: '0644'
+      notify:
+        - reload systemd
+        - restart application
+
+    - name: Enable application service
+      systemd:
+        name: "{{ app_name }}"
+        enabled: yes
+        daemon_reload: yes
+
+    # ===== MONITORING SETUP =====
+    - name: Install monitoring tools
+      pip:
+        name:
+          - docker
+          - docker-compose
+        executable: pip3
+
+    # ===== SECURITY SETUP =====
+    - name: Configure firewall (UFW) for Ubuntu
+      block:
+        - name: Install UFW
+          apt:
+            name: ufw
+            state: present
+
+        - name: Enable UFW
+          ufw:
+            state: enabled
+            policy: deny
+
+        - name: Allow SSH
+          ufw:
+            rule: allow
+            port: '22'
+
+        - name: Allow application port
+          ufw:
+            rule: allow
+            port: '8080'
+
+        - name: Allow Kubernetes API
+          ufw:
+            rule: allow
+            port: '6443'
+
+      when: ansible_distribution == "Ubuntu"
+
+    # ===== VERIFICATION =====
+    - name: Verify Docker installation
+      command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Verify Kubernetes tools
+      command: "{{ item }} version --client"
+      register: k8s_tools_version
+      changed_when: false
+      loop:
+        - kubectl
+        - helm
+      failed_when: false
+
+    - name: Verify k3d installation
+      command: k3d --version
+      register: k3d_version
+      changed_when: false
+
+    - name: Verify Terraform installation
+      command: terraform --version
+      register: terraform_version
+      changed_when: false
+
+    - name: Display installation summary
+      debug:
+        msg: |
+          Installation Summary:
+          - Docker: {{ docker_version.stdout }}
+          - kubectl: {{ k8s_tools_version.results[0].stdout | default('Failed to install') }}
+          - Helm: {{ k8s_tools_version.results[1].stdout | default('Failed to install') }}
+          - k3d: {{ k3d_version.stdout }}
+          - Terraform: {{ terraform_version.stdout }}
+          - Application directory: /opt/{{ app_name }}
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: restart application
+      systemd:
+        name: "{{ app_name }}"
+        state: restarted

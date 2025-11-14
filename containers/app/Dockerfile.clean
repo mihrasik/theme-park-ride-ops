@@ -1,0 +1,62 @@
+# Use Amazon Corretto 11 Alpine image for better ARM64/AMD64 support
+FROM amazoncorretto:11-alpine
+
+# Install required packages
+RUN apk update && apk add --no-cache \
+    openssh \
+    bash \
+    sudo \
+    curl \
+    wget \
+    shadow
+
+# Create application directory
+RUN mkdir -p /app
+
+# Copy the Spring Boot application
+COPY build/libs/*.jar /app/theme-park-ride-gradle.jar
+
+# Create SSH host keys (required for SSH)
+RUN ssh-keygen -A
+
+# Create a regular user for the application (instead of vagrant)
+RUN addgroup -S appgroup && \
+    adduser -S -G appgroup -s /bin/bash appuser && \
+    echo "appuser:appuser123" | chpasswd && \
+    mkdir -p /home/appuser/.ssh && \
+    chmod 700 /home/appuser/.ssh && \
+    chown appuser:appgroup /home/appuser/.ssh
+
+# Add appuser to sudo group
+RUN addgroup -S sudo && \
+    addgroup appuser sudo && \
+    echo "appuser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/appuser && \
+    chmod 440 /etc/sudoers.d/appuser
+
+# Configure SSH for secure access
+RUN echo "Port 22" >> /etc/ssh/sshd_config && \
+    echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config
+
+# Copy and set up entrypoint script
+COPY containers/app/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Health check for the Spring Boot application
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+# Expose required ports
+# 22: SSH, 8080: Spring Boot app, 5000: additional app port
+EXPOSE 22 8080 5000
+
+# Set working directory
+WORKDIR /app
+
+# Use the entrypoint script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Default command to run the Spring Boot application
+CMD ["java", "-jar", "/app/theme-park-ride-gradle.jar"]

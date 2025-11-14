@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Theme Park Ride Operations Application
+  themepark-app:
+    build:
+      context: .
+      dockerfile: containers/app/Dockerfile.clean
+    container_name: themepark-ride-ops
+    ports:
+      - "8080:8080"    # Spring Boot application
+      - "2222:22"      # SSH access
+      - "5001:5000"    # Additional application port (changed from 5000 to avoid conflict)
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=themepark-db
+      - DB_PORT=3306
+      - DB_NAME=themepark
+      - DB_USER=themeuser
+      - DB_PASS=themedb123
+    depends_on:
+      - themepark-db
+    networks:
+      - themepark-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MariaDB Database
+  themepark-db:
+    image: mariadb:10.6
+    container_name: themepark-mariadb
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=themepark
+      - MYSQL_USER=themeuser
+      - MYSQL_PASSWORD=themedb123
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./theme-park-ride-ops-5/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - themepark-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Adminer for database management
+  adminer:
+    image: adminer:4.8.1
+    container_name: themepark-adminer
+    ports:
+      - "8085:8080"
+    networks:
+      - themepark-network
+    restart: unless-stopped
+    depends_on:
+      - themepark-db
+
+networks:
+  themepark-network:
+    driver: bridge
+    name: themepark
+
+volumes:
+  mariadb_data:
+    name: themepark_mariadb_data

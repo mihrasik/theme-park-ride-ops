@@ -1,44 +1,40 @@
 #!/bin/bash
 
-# Theme Park Ride Ops - Kubernetes Deployment Script
-# This script automates the deployment of the Theme Park Ride Operations application to Kubernetes
+# Simple Kubernetes Deployment Script for Theme Park Ride Ops
 
-set -e
+# Source environment configuration if available
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/../../scripts/setup-env.sh" ]]; then
+    source "${SCRIPT_DIR}/../../scripts/setup-env.sh"
+else
+    # Fallback to basic path detection
+    PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+    K8S_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+    NAMESPACE="${NAMESPACE:-themepark-app}"
+fi
 
-echo "🎢 Theme Park Ride Ops - Kubernetes Deployment Script"
-echo "======================================================"
+# Theme Park Banner
+echo "Theme Park Ride Ops - Kubernetes Deployment"
+echo "============================================"
+echo "PROJECT_ROOT: $PROJECT_ROOT"
+echo "K8S_DIR: $K8S_DIR"
+echo "APP_RIDE_OPS_ROOT: $APP_RIDE_OPS_ROOT" 
 
-PROJECT_ROOT="$(pwd)/../../"
-K8S_DIR="$PROJECT_ROOT/theme-park-ride-ops-5"
-NAMESPACE="themepark-app"
-APP_RIDE_OPS_ROOT="$K8S_DIR/app/ride-ops"
-
-echo "PROJECT_ROOT $PROJECT_ROOT"
-echo "K8S_DIR $K8S_DIR"
-echo "APP_RIDE_OPS_ROOT $APP_RIDE_OPS_ROOT" 
-
-# Color codes for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Function to print colored output
+# Function to print themed output
 print_status() {
-    echo -e "${GREEN}✅ $1${NC}"
+    echo "[STATUS] $1"
 }
 
 print_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
+    echo "[INFO] $1"
 }
 
-print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+print_warn() {
+    echo "[WARN] $1"
 }
 
 print_error() {
-    echo -e "${RED}❌ $1${NC}"
+    echo "[ERROR] $1"
 }
 
 # Function to install kubectl
@@ -239,9 +235,12 @@ echo "  - GET  http://localhost:8090/ride/{id}      - Get specific ride"
 echo "  - POST http://localhost:8090/ride           - Create new ride"
 echo "  - GET  http://localhost:8090/actuator/health - Health check"
 echo
+echo "Deployment completed successfully!"
+echo "=================================="
 print_info "To view pod logs: kubectl logs -f deployment/ride-ops -n $NAMESPACE"
 print_info "To scale the application: kubectl scale deployment ride-ops --replicas=5 -n $NAMESPACE"
 print_info "To stop port forwarding: kill $PORT_FORWARD_PID"
+echo "Application is ready for use."
 echo
 
 # Keep port forwarding running

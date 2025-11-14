@@ -1,0 +1,75 @@
+# Multi-architecture Dockerfile for Theme Park Ride Ops
+# This works on both AMD64 and ARM64 architectures
+
+# Use multi-arch base image
+FROM --platform=$TARGETPLATFORM amazoncorretto:11-alpine
+
+# Declare build arguments
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+
+# Print platform info for debugging
+RUN echo "Building on: $BUILDPLATFORM, Target: $TARGETPLATFORM"
+
+# Install required packages for both architectures
+RUN apk update && apk add --no-cache \
+    openssh \
+    bash \
+    sudo \
+    curl \
+    wget \
+    shadow
+
+# Create application directory
+RUN mkdir -p /app
+
+# Copy the Spring Boot application
+COPY build/libs/*.jar /app/theme-park-ride-gradle.jar
+
+# Create SSH host keys
+RUN ssh-keygen -A
+
+# Create vagrant user with sudo privileges
+RUN addgroup -S sudo && \
+    adduser -D vagrant && \
+    echo "vagrant:vagrant" | chpasswd && \
+    addgroup vagrant sudo && \
+    echo "vagrant ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vagrant && \
+    chmod 440 /etc/sudoers.d/vagrant
+
+# Set up SSH for vagrant user
+RUN mkdir -p /home/vagrant/.ssh && \
+    chmod 700 /home/vagrant/.ssh && \
+    chown vagrant:vagrant /home/vagrant/.ssh
+
+# Copy SSH keys if they exist, otherwise create empty file
+COPY containers/app/insecure_key.pub /home/vagrant/.ssh/authorized_keys
+RUN chmod 600 /home/vagrant/.ssh/authorized_keys && \
+    chown vagrant:vagrant /home/vagrant/.ssh/authorized_keys
+
+# Configure SSH
+RUN echo "Port 22" >> /etc/ssh/sshd_config && \
+    echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config
+
+# Copy and set up entrypoint script
+COPY containers/app/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Health check that works on both platforms
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+# Expose required ports
+EXPOSE 22 8080 5000
+
+# Set working directory
+WORKDIR /app
+
+# Use the entrypoint script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Default command
+CMD ["java", "-jar", "/app/theme-park-ride-gradle.jar"]
