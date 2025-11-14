@@ -63,14 +63,47 @@ ensure_k3d_cluster() {
         print_info "Creating k3d cluster..."
         k3d cluster create themepark --servers 1 --agents 2
         print_status "k3d cluster created successfully"
+        
+        # Wait for cluster to be fully ready
+        print_info "Waiting for cluster to be ready..."
+        sleep 5
+        
+        # Update kubeconfig
+        print_info "Updating kubeconfig..."
+        k3d kubeconfig merge themepark --kubeconfig-merge-default
+        
+        # Wait a bit more for all components to start
+        print_info "Waiting for cluster components to start..."
+        sleep 10
     else
         print_info "k3d cluster 'themepark' already exists"
+        # Ensure kubeconfig is set
+        k3d kubeconfig merge themepark --kubeconfig-merge-default
+    fi
+}
+
+# Function to ensure docker group access
+ensure_docker_access() {
+    if ! groups | grep -q docker; then
+        print_warning "Current user is not in the docker group"
+        print_info "Adding user to docker group..."
+        sudo usermod -aG docker $USER
+        print_status "User added to docker group"
+        print_info "Activating docker group in current session..."
+        # Re-execute script with newgrp to activate docker group
+        exec sg docker "$0 $@"
     fi
 }
 
 # Check prerequisites
 echo
 print_info "Checking prerequisites..."
+
+# Check if user has docker access
+if ! docker ps &> /dev/null; then
+    print_warning "Cannot access Docker daemon"
+    ensure_docker_access
+fi
 
 # Check if kubectl is available
 if ! command -v kubectl &> /dev/null; then
