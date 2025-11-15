@@ -23,6 +23,11 @@
         name: unzip
         state: present
 
+    - name: Install OpenJDK 11
+      apt:
+        name: openjdk-11-jdk
+        state: present
+
     - name: Add Docker GPG key
       apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
@@ -56,6 +61,50 @@
         path: /usr/local/bin/terraform
         mode: '0755'
 
+    - name: Determine JAVA_HOME
+      set_fact:
+        java_home: "{{ java_home_map.get(ansible_architecture, '') }}"
+      vars:
+        java_home_map:
+          x86_64: /usr/lib/jvm/java-11-openjdk-amd64
+          amd64: /usr/lib/jvm/java-11-openjdk-amd64
+          aarch64: /usr/lib/jvm/java-11-openjdk-arm64
+          arm64: /usr/lib/jvm/java-11-openjdk-arm64
+
+    - name: Fail if architecture unsupported
+      fail:
+        msg: "Unsupported architecture: {{ ansible_architecture }}"
+      when: java_home == ''
+
+    - name: Capture invoking user context
+      become: false
+      set_fact:
+        invoking_user_home: "{{ ansible_env.HOME }}"
+        invoking_user_shell: "{{ ansible_env.SHELL | default('/bin/bash') }}"
+
+    - name: Determine user home for shell profile updates
+      set_fact:
+        shell_profile_home: >-
+          {{
+            (invoking_user_home
+             if invoking_user_home is defined and invoking_user_home | length > 0
+             else (
+               '/home/' ~ ansible_env.SUDO_USER
+               if ansible_env.SUDO_USER is defined and ansible_env.SUDO_USER not in ['', 'root']
+               else ansible_env.HOME
+             ))
+          }}
+
+    - name: Ensure system-wide JAVA_HOME profile script
+      copy:
+        dest: /etc/profile.d/java_home.sh
+        content: |
+          export JAVA_HOME={{ java_home }}
+          export PATH=$JAVA_HOME/bin:$PATH
+        owner: root
+        group: root
+        mode: '0644'
+
     - name: Download k3d install script
       get_url:
         url: "https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh"
@@ -65,6 +114,55 @@
     - name: Run k3d install script
       command:
         cmd: "/tmp/install_k3d.sh"
+
+    - name: Ensure JAVA_HOME and PATH in bashrc
+      blockinfile:
+        path: "{{ shell_profile_home }}/.bashrc"
+        marker: "# {mark} Ansible managed Java environment"
+        block: |
+          export JAVA_HOME={{ java_home }}
+          export PATH=$JAVA_HOME/bin:$PATH
+
+    - name: Export JAVA_HOME in current terminal session
+      become: false
+      shell: |
+        if [ -f "{{ shell_profile_home }}/.bashrc" ]; then
+          . "{{ shell_profile_home }}/.bashrc"
+        fi
+      args:
+        executable: "{{ invoking_user_shell | default('/bin/bash') }}"
+      changed_when: false
+
+    - name: Source updated bashrc for current session
+      become: false
+      shell: |
+        if [ -f "{{ shell_profile_home }}/.bashrc" ]; then
+          source "{{ shell_profile_home }}/.bashrc"
+          echo "JAVA_HOME applied: $JAVA_HOME"
+        fi
+      args:
+        executable: "{{ invoking_user_shell | default('/bin/bash') }}"
+      changed_when: false
+
+    - name: Export Java environment for amd64
+      become: false
+      shell: |
+        export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+        export PATH=$JAVA_HOME/bin:$PATH
+      args:
+        executable: "{{ invoking_user_shell | default('/bin/bash') }}"
+      when: ansible_architecture in ['x86_64', 'amd64']
+      changed_when: false
+
+    - name: Export Java environment for arm64
+      become: false
+      shell: |
+        export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64
+        export PATH=$JAVA_HOME/bin:$PATH
+      args:
+        executable: "{{ invoking_user_shell | default('/bin/bash') }}"
+      when: ansible_architecture in ['aarch64', 'arm64']
+      changed_when: false
 
   handlers:
     - name: Start Docker service
