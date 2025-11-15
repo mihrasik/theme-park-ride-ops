@@ -71,7 +71,30 @@
     - name: Run k3d install script
       command:
         cmd: "/tmp/install_k3d.sh"
+        
+    - name: Update apt cache
+      apt:
+        update_cache: yes
 
+    - name: Install OpenJDK 11
+      apt:
+        name: openjdk-11-jdk
+        state: present
+
+    - name: Set JAVA_HOME environment variable
+      lineinfile:
+        path: /etc/environment
+        line: JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64"
+        create: yes
+
+    - name: Verify JDK installation
+      command: java -version
+      register: java_version
+      changed_when: false
+
+    - name: Display Java version
+      debug:
+        msg: "Java version: {{ java_version.stdout }}"
   handlers:
     - name: Start Docker service
       service:

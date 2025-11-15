@@ -1,0 +1,23 @@
+---
+- name: Add APP_ROOT to .env file
+  hosts: localhost
+  gather_facts: false
+  
+  tasks:
+    - name: Get current directory
+      command: pwd
+      register: current_dir
+      
+    - name: Debug current directory value
+      debug:
+        msg: "Current directory is: {{ current_dir.stdout }}"
+        
+    - name: Debug current directory (alternative)
+      debug:
+        var: current_dir
+        
+    - name: Add APP_ROOT to .env file
+      lineinfile:
+        path: .env
+        line: "APP_ROOT={{ current_dir.stdout }}"
+        create: yes
