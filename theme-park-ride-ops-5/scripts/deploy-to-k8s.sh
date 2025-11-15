@@ -49,7 +49,15 @@ print_error() {
 # Function to install kubectl
 install_kubectl() {
     print_info "Installing kubectl..."
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    ARCH=$(uname -m)
+    case "$ARCH" in
+        x86_64|amd64) ARCH="amd64" ;;
+        aarch64|arm64) ARCH="arm64" ;;
+        *) print_error "Unsupported architecture: $ARCH"; exit 1 ;;
+    esac
+    DOWNLOAD_URL="https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl"
+    print_info "Downloading kubectl from $DOWNLOAD_URL"
+    curl -LO "$DOWNLOAD_URL"
     chmod +x kubectl
     sudo mv kubectl /usr/local/bin/
     print_status "kubectl installed successfully"
