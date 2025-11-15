@@ -5,6 +5,11 @@
 
 set -e
 
+# Increase Gradle wrapper download timeout to 10 minutes (600,000 ms)
+# to avoid timeout during Step 1: Building the Spring Boot application
+# when downloading Gradle distribution (e.g., https://services.gradle.org/distributions/gradle-7.3.2-bin.zip)
+export GRADLE_OPTS="-Dorg.gradle.wrapper.timeout=600000"
+
 echo "🎢 Theme Park Ride Ops - Kubernetes Deployment Script"
 echo "======================================================"
 
