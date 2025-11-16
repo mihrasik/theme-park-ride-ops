@@ -13,8 +13,8 @@ export GRADLE_OPTS="-Dorg.gradle.wrapper.timeout=600000"
 echo "🎢 Theme Park Ride Ops - Kubernetes Deployment Script"
 echo "======================================================"
 
-PROJECT_ROOT="$(pwd)/../../"
-K8S_DIR="$PROJECT_ROOT/theme-park-ride-ops-5"
+PROJECT_ROOT="$(pwd)/.."
+K8S_DIR="$PROJECT_ROOT/new"
 NAMESPACE="themepark-app"
 APP_RIDE_OPS_ROOT="$K8S_DIR/app/ride-ops"
 
