@@ -1,4 +1,0 @@
-cd terraform/
-terraform init
-terraform plan -out=ftplan
-terraform apply -f ftplan
