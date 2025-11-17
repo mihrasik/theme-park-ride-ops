@@ -1,0 +1,8 @@
+generate  readme file for the project in 'new' folder.
+to run the project you need to execute files
+
+install ansible
+ansible playbook devops tools sh
+add_java_home_env_arm64
+deploy-to-k8s.sh
+forward_k8s.sh

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ride-ops
+  namespace: themepark-app
+  labels:
+    app: ride-ops
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 5000
+    protocol: TCP
+    name: http
+  selector:
+    app: ride-ops

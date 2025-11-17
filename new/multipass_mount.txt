@@ -1,0 +1,2 @@
+multipass mount /Users/rahulsingh/Ekta/DataScientest/theme-park-ride-ops-4 park:/home/ubuntu/park  
+multipass shell park
