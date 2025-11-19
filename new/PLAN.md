@@ -44,6 +44,14 @@ Go to explore _select Prometheus as Datasource and query the below:
 up{job="ride-ops"}
 jvm_memory_used_bytes
 process_cpu_usage
+#HTTP Request Rate: 
+rate(http_server_requests_seconds_count{application="ride-ops"}[5m])
+#HTTP Request Duration: 
+rate(http_server_requests_seconds_sum{application="ride-ops"}[5m])
+#Tomcat Bytes Sent: 
+rate(tomcat_global_sent_bytes_total{application="ride-ops"}[5m])
+#Tomcat Bytes Received: 
+rate(tomcat_global_received_bytes_total{application="ride-ops"}[5m])
 
 TODO: change insecure_private_key certificates to secure
 
