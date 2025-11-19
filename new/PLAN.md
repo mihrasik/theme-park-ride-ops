@@ -30,7 +30,21 @@ backup management , recovery disaster -
 
 TODO: security, move db passwords from git to .env files
 TODO: ci/cd with gitlab? or jenkins - 1) build app with gradlew 2) build docker imgages : app, db, lb
-TODO: add Prometheus and Grafana
+Adding Prometheus and Grafana
+echo "Access from your Mac:"
+echo " Application: http://YOUR_VM_IP:8090"
+echo " Prometheus: http://YOUR_VM_IP:9090 (eg: http://192.168.64.4:9090)"
+echo " Grafana: http://YOUR_VM_IP:3000 (eg: http://192.168.64.4:3000)"
+echo ""
+under grafana login: admin/admin123 and Dashboards → Import
+Enter dashboard ID 6756 (Spring Boot 2.x Statistics)
+Select the Prometheus datasource (already pre-configured)
+Click Import
+Go to explore _select Prometheus as Datasource and query the below:
+up{job="ride-ops"}
+jvm_memory_used_bytes
+process_cpu_usage
+
 TODO: change insecure_private_key certificates to secure
 
 We are doing a DataOps project. At the moment be have java boot spring application with hibernate connected to mariadb. The app is build with gradlew. It has 3 apps and load balancer. These 5 docker containers app1 app2 app3 db lb are running vie vagrant.
