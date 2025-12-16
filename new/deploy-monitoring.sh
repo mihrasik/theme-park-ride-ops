@@ -27,6 +27,15 @@ kubectl apply -f ${K8S_DIR}/prometheus/service.yaml
 # Deploy Grafana
 echo "Deploying Grafana..."
 kubectl apply -f ${K8S_DIR}/grafana/configmap.yaml
+kubectl apply -f ${K8S_DIR}/grafana/dashboard-provider.yaml
+
+# Create dashboard ConfigMap from JSON file
+echo "Creating Grafana dashboard ConfigMap..."
+kubectl create configmap grafana-dashboards \
+  --from-file=ride-ops-dashboard.json=${K8S_DIR}/grafana/ride-ops-dashboard.json \
+  --namespace=monitoring \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 kubectl apply -f ${K8S_DIR}/grafana/deployment.yaml
 kubectl apply -f ${K8S_DIR}/grafana/service.yaml
 
