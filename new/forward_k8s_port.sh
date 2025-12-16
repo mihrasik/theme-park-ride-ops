@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+
+# Set architecture
+ARCH="$(uname -m)"
+
+
 echo "Stopping any existing port forwards..."
 pkill -f "kubectl port-forward" || true
 
@@ -28,7 +33,15 @@ echo "Port forwards active:"
 ss -tlnp | grep -E '(8090|9090|3000)' || echo "Checking ports..."
 
 # Get the VM IP address dynamically
-VM_IP=$(ip addr show enp0s1 | grep "inet " | awk '{print $2}' | cut -d/ -f1)
+
+case "$ARCH" in
+  x86_64) VM_IP=$(ip addr show ens3 | grep "inet " | awk '{print $2}' | cut -d/ -f1) ;;
+  aarch64|arm64) VM_IP=$(ip addr show enp0s1 | grep "inet " | awk '{print $2}' | cut -d/ -f1) ;;
+  *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+esac
+
+# VM_IP=$(ip addr show enp0s1 | grep "inet " | awk '{print $2}' | cut -d/ -f1)
+# VM_IP=$(ip addr show ens3 | grep "inet " | awk '{print $2}' | cut -d/ -f1)
 
 echo ""
 echo "Access from your Mac:"
