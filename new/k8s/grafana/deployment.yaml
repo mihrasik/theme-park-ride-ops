@@ -38,7 +38,7 @@ spec:
           mountPath: /etc/grafana/provisioning/dashboards
           readOnly: false
         - name: grafana-dashboards
-          mountPath: /var/lib/grafana/dashboards
+          mountPath: /etc/grafana/dashboards
           readOnly: false
         resources:
           requests:

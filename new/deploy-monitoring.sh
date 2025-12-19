@@ -29,10 +29,11 @@ echo "Deploying Grafana..."
 kubectl apply -f ${K8S_DIR}/grafana/configmap.yaml
 kubectl apply -f ${K8S_DIR}/grafana/dashboard-provider.yaml
 
-# Create dashboard ConfigMap from JSON file
-echo "Creating Grafana dashboard ConfigMap..."
+# Create dashboard ConfigMap from JSON files
+echo "Creating Grafana dashboards ConfigMap..."
 kubectl create configmap grafana-dashboards \
   --from-file=ride-ops-dashboard.json=${K8S_DIR}/grafana/ride-ops-dashboard.json \
+  --from-file=four-golden-signals-dashboard.json=${K8S_DIR}/grafana/four-golden-signals-dashboard.json \
   --namespace=monitoring \
   --dry-run=client -o yaml | kubectl apply -f -
 

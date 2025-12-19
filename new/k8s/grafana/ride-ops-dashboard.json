@@ -12,9 +12,10 @@
       }
     ]
   },
+  "description": "Four Golden Signals monitoring for Theme Park Ride Ops application",
   "editable": true,
   "gnetId": null,
-  "graphTooltip": 0,
+  "graphTooltip": 1,
   "id": null,
   "links": [],
   "panels": [
